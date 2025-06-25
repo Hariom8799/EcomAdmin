@@ -237,6 +237,30 @@ const ProductDetails = () => {
                                     product?.description && <p className="text-[14px] ">{product?.description}</p>
                                 }
 
+{
+                                    product?.files?.length > 0 && (
+                                        <>
+                                            <h2 className="text-[20px] font-[500] mb-3 mt-6">Product Files</h2>
+                                            <ul className="text-[14px] space-y-2">
+                                                {product.files.map((file, index) => (
+                                                    <li key={index} className="flex items-center gap-2">
+                                                        <span className="font-medium">{file.fileName || `File ${index + 1}`}:</span>
+                                                        <a
+                                                            href={file.fileUrl}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="text-blue-600 underline hover:text-blue-800 transition-all"
+                                                        >
+                                                            View / Download
+                                                        </a>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </>
+                                    )
+                                }
+
+
 
                             </div>
                         </div>
@@ -253,7 +277,7 @@ const ProductDetails = () => {
                             {
                                 reviewsData?.length !== 0 && reviewsData?.map((review, index) => {
                                     return (
-                                        <div className="reviews w-full h-auto mb-3 p-4 bg-white rounded-sm shadow-md flex items-center justify-between">
+                                        <div key={index} className="reviews w-full h-auto mb-3 p-4 bg-white rounded-sm shadow-md flex items-center justify-between">
                                             <div className="flex items-center gap-8">
                                                 <div className="img w-[65px] h-[65px] rounded-full overflow-hidden">
                                                     {

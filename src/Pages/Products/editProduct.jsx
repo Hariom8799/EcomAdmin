@@ -14,6 +14,7 @@ import { useNavigate } from 'react-router-dom';
 import CircularProgress from '@mui/material/CircularProgress';
 
 import Switch from '@mui/material/Switch';
+const apiUrl = import.meta.env.VITE_API_URL;
 
 const label = { inputProps: { 'aria-label': 'Switch demo' } };
 
@@ -44,11 +45,14 @@ const EditProduct = () => {
         productWeight: [],
         bannerTitleName: '',
         bannerimages: [],
-        isDisplayOnHomeBanner:false
+        isDisplayOnHomeBanner: false,
+        files: [],
+        folderName: '',
 
     })
 
-
+    const [filePreviews, setFilePreviews] = useState([]);
+    const [selectedFiles, setSelectedFiles] = useState([]);
     const [productCat, setProductCat] = React.useState('');
     const [productSubCat, setProductSubCat] = React.useState('');
     const [productFeatured, setProductFeatured] = React.useState('');
@@ -118,10 +122,17 @@ const EditProduct = () => {
                 productWeight: res?.product?.productWeight,
                 bannerTitleName: res?.product?.bannerTitleName,
                 bannerimages: res?.product?.bannerimages,
-                isDisplayOnHomeBanner:res?.product?.isDisplayOnHomeBanner
+                isDisplayOnHomeBanner: res?.product?.isDisplayOnHomeBanner,
+                files : res?.product?.files,
+                folderName: res?.product?.files?.[0]?.folderName || ''
             })
-
-
+            
+            const filePreviews = res?.product?.files.map(file => ({
+                preview: file.fileUrl,
+                name: file.fileName,
+                type : ""
+              }));
+            setFilePreviews(filePreviews);
             setProductCat(res?.product?.catId);
             setProductSubCat(res?.product?.subCatId);
             setProductThirdLavelCat(res?.product?.thirdsubCatId);
@@ -276,6 +287,40 @@ const EditProduct = () => {
         }, 10);
     }
 
+    const handleFileSelection = (e) => {
+        const files = Array.from(e.target.files);
+        setSelectedFiles(prev => [...prev, ...files]);
+
+        // Create previews
+        const newPreviews = [];
+        files.forEach(file => {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                newPreviews.push({
+                    file: file,
+                    preview: event.target.result,
+                    name: file.name,
+                    type: file.type,
+                    size: file.size
+                });
+
+                if (newPreviews.length === files.length) {
+                    setFilePreviews(prev => [...prev, ...newPreviews]);
+                    formFields.files = [...formFields.files, ...newPreviews];
+                }
+            };
+            reader.readAsDataURL(file);
+        });
+    };
+
+    const removeFile = (index) => {
+        const updatedFiles = selectedFiles.filter((_, i) => i !== index);
+        const updatedPreviews = filePreviews.filter((_, i) => i !== index);
+
+        setSelectedFiles(updatedFiles);
+        setFilePreviews(updatedPreviews);
+        formFields.files = updatedPreviews;
+    };
 
 
     const removeBannerImg = (image, index) => {
@@ -295,7 +340,7 @@ const EditProduct = () => {
 
 
 
-    const handleChangeSwitch=(event)=>{
+    const handleChangeSwitch = (event) => {
         setCheckedSwitch(event.target.checked);
         formFields.isDisplayOnHomeBanner = event.target.checked;
     }
@@ -729,6 +774,89 @@ const EditProduct = () => {
 
 
 
+                    </div>
+
+                    <div className='col w-full p-5 px-0'>
+                        <div className='bg-gray-50 p-4 w-full border rounded-md'>
+                            <h3 className="font-[700] text-[18px] mb-3">Additional Files (Optional)</h3>
+
+                            {/* Folder Name Input */}
+                            <div className='mb-4'>
+                                <h4 className='text-[14px] font-[500] mb-1 text-black'>Folder Name</h4>
+                                <input
+                                    type="text"
+                                    className='w-full h-[40px] border border-[rgba(0,0,0,0.2)] focus:outline-none focus:border-[rgba(0,0,0,0.4)] rounded-sm p-3 text-sm'
+                                    name="folderName"
+                                    value={formFields.folderName}
+                                    onChange={onChangeInput}
+                                    placeholder="Enter folder name (optional)"
+                                />
+                            </div>
+
+                            {/* File Upload Input */}
+                            <div className='mb-4'>
+                                <input
+                                    type="file"
+                                    multiple
+                                    onChange={handleFileSelection}
+                                    className='hidden'
+                                    id="fileUpload"
+                                    accept="*/*"
+                                />
+                                <label
+                                    htmlFor="fileUpload"
+                                    className='inline-block px-4 py-2 bg-blue-500 text-white rounded cursor-pointer hover:bg-blue-600 transition-colors'
+                                >
+                                    <FaCloudUploadAlt className='inline mr-2' />
+                                    Choose Files
+                                </label>
+                            </div>
+
+                            {/* File Previews */}
+                            {filePreviews.length > 0 && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {filePreviews.map((fileData, index) => (
+                                        <div key={index} className="border rounded-lg p-3 bg-white relative">
+                                            <span
+                                                className='absolute w-[20px] h-[20px] rounded-full overflow-hidden bg-red-700 -top-[5px] -right-[5px] flex items-center justify-center z-50 cursor-pointer'
+                                                onClick={() => removeFile(index)}
+                                            >
+                                                <IoMdClose className='text-white text-[12px]' />
+                                            </span>
+
+                                            <div className="flex items-center space-x-3">
+                                                {/* File Icon/Preview */}
+                                                <div className="flex-shrink-0">
+                                                    {fileData.type.startsWith('image/') ? (
+                                                        <img
+                                                            src={fileData.preview}
+                                                            alt={fileData.name}
+                                                            className="w-12 h-12 object-cover rounded"
+                                                        />
+                                                    ) : (
+                                                        <div className="w-12 h-12 bg-gray-200 rounded flex items-center justify-center">
+                                                            <span className="text-xs font-bold text-gray-600">
+                                                                {fileData.name.split('.').pop()?.toUpperCase()}
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {/* File Info */}
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-medium text-gray-900 truncate">
+                                                        {fileData.name}
+                                                    </p>
+                                                    <p className="text-xs text-gray-500">
+                                                        {(fileData.size / 1024 / 1024).toFixed(2)} MB
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                 </div>

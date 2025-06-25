@@ -27,6 +27,22 @@ import CircularProgress from '@mui/material/CircularProgress';
 import Lightbox from "yet-another-react-lightbox";
 import "yet-another-react-lightbox/styles.css";
 
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
+import TextField from '@mui/material/TextField';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import IconButton from '@mui/material/IconButton';
+import List from '@mui/material/List';
+import ListItem from '@mui/material/ListItem';
+import ListItemText from '@mui/material/ListItemText';
+import ListItemSecondaryAction from '@mui/material/ListItemSecondaryAction';
+import { FiUpload, FiFile } from 'react-icons/fi';
+import { IoMdClose } from 'react-icons/io';
+const apiUrl = import.meta.env.VITE_API_URL;
+
 
 const label = { inputProps: { "aria-label": "Checkbox demo" } };
 
@@ -66,6 +82,12 @@ const columns = [
 ];
 
 export const Products = () => {
+
+    const [fileUploadDialog, setFileUploadDialog] = useState({ open: false, productId: null });
+    const [uploadFiles, setUploadFiles] = useState([]);
+    const [folderName, setFolderName] = useState('');
+    const [uploading, setUploading] = useState(false);
+
     const [productCat, setProductCat] = React.useState('');
     const [page, setPage] = React.useState(0);
     const [rowsPerPage, setRowsPerPage] = React.useState(50);
@@ -341,6 +363,66 @@ export const Products = () => {
         setPage(newPage);
     };
 
+    const handleFileChange = (event) => {
+        const selectedFiles = Array.from(event.target.files);
+        setUploadFiles(selectedFiles);
+    };
+
+    const handleRemoveFile = (index) => {
+        setUploadFiles(uploadFiles.filter((_, i) => i !== index));
+    };
+
+    const handleFileUpload = async () => {
+        if (uploadFiles.length === 0) {
+            context.alertBox('error', 'Please select files to upload');
+            return;
+        }
+
+        setUploading(true);
+
+        try {
+            const formData = new FormData();
+            uploadFiles.forEach((file) => {
+                formData.append('files', file);
+            });
+
+            if (folderName) {
+                formData.append('folderName', folderName);
+            }
+
+            const response = await fetch(`${apiUrl}/api/product/products/${fileUploadDialog.productId}/files`, {
+                method: 'POST',
+                body: formData,
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                getProducts(page, rowsPerPage); // Refresh the products list
+                handleCloseFileDialog();
+                context.alertBox('success', 'Files uploaded successfully');
+            } else {
+                context.alertBox('error', result.message || 'Upload failed');
+            }
+        } catch (error) {
+            console.error('Upload error:', error);
+            context.alertBox('error', 'Upload failed');
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const handleCloseFileDialog = () => {
+        if (!uploading) {
+            setFileUploadDialog({ open: false, productId: null });
+            setUploadFiles([]);
+            setFolderName('');
+        }
+    };
+
+    const openFileUploadDialog = (productId) => {
+        setFileUploadDialog({ open: true, productId });
+    };
+
     return (
         <>
 
@@ -581,7 +663,6 @@ export const Products = () => {
 
 
                                             </TableCell>
-
                                             <TableCell style={{ minWidth: columns.minWidth }}>
                                                 <div className="flex items-center gap-1">
                                                     <Button className="!w-[35px] !h-[35px] bg-[#f1f1f1] !border !border-[rgba(0,0,0,0.4)] !rounded-full hover:!bg-[#f1f1f1] !min-w-[35px]"
@@ -600,11 +681,22 @@ export const Products = () => {
                                                         </Button>
                                                     </Link>
 
+                                                    {/* Show upload button only if no files exist */}
+                                                    {(!product?.files || product?.files?.length === 0) && (
+                                                        <Button
+                                                            className="!w-[35px] !h-[35px] bg-[#f1f1f1] !border !border-[rgba(0,0,0,0.4)] !rounded-full hover:!bg-[#f1f1f1] !min-w-[35px]"
+                                                            onClick={() => openFileUploadDialog(product?._id)}
+                                                        >
+                                                            <FiUpload className="text-[rgba(0,0,0,0.7)] text-[18px] " />
+                                                        </Button>
+                                                    )}
+
                                                     <Button className="!w-[35px] !h-[35px] bg-[#f1f1f1] !border !border-[rgba(0,0,0,0.4)] !rounded-full hover:!bg-[#f1f1f1] !min-w-[35px]" onClick={() => deleteProduct(product?._id)}>
                                                         <GoTrash className="text-[rgba(0,0,0,0.7)] text-[18px] " />
                                                     </Button>
                                                 </div>
                                             </TableCell>
+
                                         </TableRow>
                                     )
                                 })
@@ -647,6 +739,94 @@ export const Products = () => {
                 slides={photos}
             />
 
+            <Dialog open={fileUploadDialog.open} onClose={handleCloseFileDialog} maxWidth="md" fullWidth>
+                <DialogTitle>
+                    <Box display="flex" justifyContent="space-between" alignItems="center">
+                        <Typography variant="h6">Upload Files</Typography>
+                        <IconButton onClick={handleCloseFileDialog} disabled={uploading}>
+                            <IoMdClose />
+                        </IconButton>
+                    </Box>
+                </DialogTitle>
+
+                <DialogContent>
+                    <Box mb={3}>
+                        <TextField
+                            fullWidth
+                            label="Folder Name (Optional)"
+                            value={folderName}
+                            onChange={(e) => setFolderName(e.target.value)}
+                            margin="normal"
+                            disabled={uploading}
+                        />
+                    </Box>
+
+                    <Box mb={3}>
+                        <input
+                            type="file"
+                            multiple
+                            onChange={handleFileChange}
+                            style={{ display: 'none' }}
+                            id="file-upload-input"
+                            disabled={uploading}
+                        />
+                        <label htmlFor="file-upload-input">
+                            <Button
+                                variant="outlined"
+                                component="span"
+                                startIcon={<FiUpload />}
+                                disabled={uploading}
+                                fullWidth
+                            >
+                                Select Files
+                            </Button>
+                        </label>
+                    </Box>
+
+                    {uploadFiles.length > 0 && (
+                        <Box>
+                            <Typography variant="subtitle2" gutterBottom>
+                                Selected Files ({uploadFiles.length}):
+                            </Typography>
+                            <List dense>
+                                {uploadFiles.map((file, index) => (
+                                    <ListItem key={index} divider>
+                                        <FiFile style={{ marginRight: 8 }} />
+                                        <ListItemText
+                                            primary={file.name}
+                                            secondary={`Size: ${(file.size / 1024 / 1024).toFixed(2)} MB`}
+                                        />
+                                        <ListItemSecondaryAction>
+                                            <IconButton
+                                                edge="end"
+                                                onClick={() => handleRemoveFile(index)}
+                                                disabled={uploading}
+                                                size="small"
+                                            >
+                                                <IoMdClose />
+                                            </IconButton>
+                                        </ListItemSecondaryAction>
+                                    </ListItem>
+                                ))}
+                            </List>
+                        </Box>
+                    )}
+                </DialogContent>
+
+                <DialogActions>
+                    <Button onClick={handleCloseFileDialog} disabled={uploading}>
+                        Cancel
+                    </Button>
+                    <Button
+                        onClick={handleFileUpload}
+                        variant="contained"
+                        disabled={uploading || uploadFiles.length === 0}
+                        startIcon={<FiUpload />}
+                    >
+                        {uploading ? 'Uploading...' : 'Upload Files'}
+                    </Button>
+                </DialogActions>
+            </Dialog>
 
         </>
     )

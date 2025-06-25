@@ -13,6 +13,7 @@ import { deleteImages, fetchDataFromApi, postData } from '../../utils/api';
 import { useNavigate } from 'react-router-dom';
 import CircularProgress from '@mui/material/CircularProgress';
 import Switch from '@mui/material/Switch';
+const apiUrl = import.meta.env.VITE_API_URL;
 
 const label = { inputProps: { 'aria-label': 'Switch demo' } };
 
@@ -42,11 +43,13 @@ const AddProduct = () => {
         productWeight: [],
         bannerTitleName: '',
         bannerimages: [],
-        isDisplayOnHomeBanner:false
-
+        isDisplayOnHomeBanner:false,
+        files: [], 
+        folderName: '',
     })
 
-
+    const [filePreviews, setFilePreviews] = useState([]);
+    const [selectedFiles, setSelectedFiles] = useState([]);
     const [productCat, setProductCat] = React.useState('');
     const [productSubCat, setProductSubCat] = React.useState('');
     const [productFeatured, setProductFeatured] = React.useState('');
@@ -214,6 +217,40 @@ const AddProduct = () => {
         }, 10);
     }
 
+    const handleFileSelection = (e) => {
+        const files = Array.from(e.target.files);
+        setSelectedFiles(prev => [...prev, ...files]);
+
+        // Create previews
+        const newPreviews = [];
+        files.forEach(file => {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                newPreviews.push({
+                    file: file,
+                    preview: event.target.result,
+                    name: file.name,
+                    type: file.type,
+                    size: file.size
+                });
+
+                if (newPreviews.length === files.length) {
+                    setFilePreviews(prev => [...prev, ...newPreviews]);
+                    formFields.files = [...formFields.files, ...newPreviews];
+                }
+            };
+            reader.readAsDataURL(file);
+        });
+    };
+
+    const removeFile = (index) => {
+        const updatedFiles = selectedFiles.filter((_, i) => i !== index);
+        const updatedPreviews = filePreviews.filter((_, i) => i !== index);
+
+        setSelectedFiles(updatedFiles);
+        setFilePreviews(updatedPreviews);
+        formFields.files = updatedPreviews;
+    };
 
 
    const removeImg = (image, index) => {
@@ -305,40 +342,87 @@ const AddProduct = () => {
             context.alertBox("error", "Please enter product discount");
             return false;
         }
-
-
-
-
         if (formFields?.rating === "") {
             context.alertBox("error", "Please enter  product rating");
             return false;
         }
-
-
         if (previews?.length === 0) {
             context.alertBox("error", "Please select product images");
             return false;
         }
+        setIsLoading(true);
+        // postData("/api/product/create", formFields).then((res) => {
 
+        //     if (res?.error === false) {
+        //         context.alertBox("success", res?.message);
+        //         setTimeout(() => {
+        //             setIsLoading(false);
+        //             context.setIsOpenFullScreenPanel({
+        //                 open: false,
+        //             })
+        //             history("/products");
+        //         }, 1000);
+        //     } else {
+        //         setIsLoading(false);
+        //         context.alertBox("error", res?.message);
+        //     }
+        // })
+
+        const formData = new FormData();
+
+        // Append all form fields
+        Object.keys(formFields).forEach(key => {
+            if (key !== 'files' && formFields[key] !== '') {
+                if (Array.isArray(formFields[key])) {
+                    formFields[key].forEach(item => {
+                        formData.append(key, item);
+                    });
+                } else {
+                    formData.append(key, formFields[key]);
+                }
+            }
+        });
+
+        console.log("knfjkdbkfdbkdbdkjbkdjbdfkjb",filePreviews)
+        // Append files if any
+        selectedFiles.forEach((file, index) => {
+            formData.append('files', file);
+            formData.append('fileNames', file.name);
+            formData.append('folderNames', formFields.folderName || '');
+        });
 
         setIsLoading(true);
 
-        postData("/api/product/create", formFields).then((res) => {
-
-            if (res?.error === false) {
-                context.alertBox("success", res?.message);
-                setTimeout(() => {
-                    setIsLoading(false);
-                    context.setIsOpenFullScreenPanel({
-                        open: false,
-                    })
-                    history("/products");
-                }, 1000);
-            } else {
-                setIsLoading(false);
-                context.alertBox("error", res?.message);
+        // Use fetch instead of postData for FormData
+        fetch(`${apiUrl}/api/product/create`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                // Don't set Content-Type, let browser set it for FormData
+                'Authorization': `Bearer ${localStorage.getItem('accessToken')}` // if you use auth
             }
         })
+            .then(response => response.json())
+            .then((res) => {
+                if (res?.error === false) {
+                    context.alertBox("success", res?.message);
+                    setTimeout(() => {
+                        setIsLoading(false);
+                        context.setIsOpenFullScreenPanel({
+                            open: false,
+                        });
+                        history("/products");
+                    }, 1000);
+                } else {
+                    setIsLoading(false);
+                    context.alertBox("error", res?.message);
+                }
+            })
+            .catch(error => {
+                setIsLoading(false);
+                context.alertBox("error", "Error uploading files");
+                console.error('Error:', error);
+            });
     }
 
     return (
@@ -590,29 +674,13 @@ const AddProduct = () => {
                                 </Select>
                             }
                         </div>
-
-
-
-
                     </div>
-
-
-
-
                     <div className='grid grid-cols-1 sm:grid-cols-1 md:grid-cols-3 lg:grid-cols-4 mb-3 gap-4'>
-
-
                         <div className='col'>
                             <h3 className='text-[14px] font-[500] mb-1  text-black'>Product Rating </h3>
                             <Rating name="half-rating" defaultValue={1} onChange={onChangeRating} />
                         </div>
-
-
                     </div>
-
-
-
-
                     <div className='col w-full p-5 px-0'>
                         <h3 className="font-[700] text-[18px] mb-3">Media & Images</h3>
 
@@ -621,32 +689,18 @@ const AddProduct = () => {
                                 previews?.length !== 0 && previews?.map((image, index) => {
                                     return (
                                         <div className="uploadBoxWrapper relative" key={index}>
-
                                             <span className='absolute w-[20px] h-[20px] rounded-full  overflow-hidden bg-red-700 -top-[5px] -right-[5px] flex items-center justify-center z-50 cursor-pointer' onClick={() => removeImg(image, index)}><IoMdClose className='text-white text-[17px]' /></span>
-
-
                                             <div className='uploadBox p-0 rounded-md overflow-hidden border border-dashed border-[rgba(0,0,0,0.3)] h-[150px] w-[100%] bg-gray-100 cursor-pointer hover:bg-gray-200 flex items-center justify-center flex-col relative'>
-
                                                 <img src={image} className='w-100' />
                                             </div>
                                         </div>
                                     )
                                 })
                             }
-
-
                             <UploadBox multiple={true} name="images" url="/api/product/uploadImages" setPreviewsFun={setPreviewsFun} />
                         </div>
-
                     </div>
-
-
-
-
-
-
                     <div className='col w-full p-5 px-0'>
-
                         <div className='bg-gray-100 p-4 w-full'>
                             <div className="flex items-center gap-8">
                                 <h3 className="font-[700] text-[18px] mb-3">Banner Images</h3>
@@ -658,10 +712,7 @@ const AddProduct = () => {
                                     bannerPreviews?.length !== 0 && bannerPreviews?.map((image, index) => {
                                         return (
                                             <div className="uploadBoxWrapper relative" key={index}>
-
                                                 <span className='absolute w-[20px] h-[20px] rounded-full  overflow-hidden bg-red-700 -top-[5px] -right-[5px] flex items-center justify-center z-50 cursor-pointer' onClick={() => removeBannerImg(image, index)}><IoMdClose className='text-white text-[17px]' /></span>
-
-
                                                 <div className='uploadBox p-0 rounded-md overflow-hidden border border-dashed border-[rgba(0,0,0,0.3)] h-[150px] w-[100%] bg-gray-100 cursor-pointer hover:bg-gray-200 flex items-center justify-center flex-col relative'>
 
                                                     <img src={image} className='w-100' />
@@ -670,30 +721,99 @@ const AddProduct = () => {
                                         )
                                     })
                                 }
-
-
                                 <UploadBox multiple={true} name="bannerimages" url="/api/product/uploadBannerImages" setPreviewsFun={setBannerImagesFun} />
                             </div>
-
-
                             <br />
-
                             <h3 className="font-[700] text-[18px] mb-3">Banner Title</h3>
                             <input type="text" className='w-full h-[40px] border border-[rgba(0,0,0,0.2)] focus:outline-none focus:border-[rgba(0,0,0,0.4)] rounded-sm p-3 text-sm' name="bannerTitleName" value={formFields.bannerTitleName} onChange={onChangeInput} />
                         </div>
-
-
-
                     </div>
+                    <div className='col w-full p-5 px-0'>
+                        <div className='bg-gray-50 p-4 w-full border rounded-md'>
+                            <h3 className="font-[700] text-[18px] mb-3">Additional Files (Optional)</h3>
 
+                            {/* Folder Name Input */}
+                            <div className='mb-4'>
+                                <h4 className='text-[14px] font-[500] mb-1 text-black'>Folder Name</h4>
+                                <input
+                                    type="text"
+                                    className='w-full h-[40px] border border-[rgba(0,0,0,0.2)] focus:outline-none focus:border-[rgba(0,0,0,0.4)] rounded-sm p-3 text-sm'
+                                    name="folderName"
+                                    value={formFields.folderName}
+                                    onChange={onChangeInput}
+                                    placeholder="Enter folder name (optional)"
+                                />
+                            </div>
+
+                            {/* File Upload Input */}
+                            <div className='mb-4'>
+                                <input
+                                    type="file"
+                                    multiple
+                                    onChange={handleFileSelection}
+                                    className='hidden'
+                                    id="fileUpload"
+                                    accept="*/*"
+                                />
+                                <label
+                                    htmlFor="fileUpload"
+                                    className='inline-block px-4 py-2 bg-blue-500 text-white rounded cursor-pointer hover:bg-blue-600 transition-colors'
+                                >
+                                    <FaCloudUploadAlt className='inline mr-2' />
+                                    Choose Files
+                                </label>
+                            </div>
+
+                            {/* File Previews */}
+                            {filePreviews.length > 0 && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {filePreviews.map((fileData, index) => (
+                                        <div key={index} className="border rounded-lg p-3 bg-white relative">
+                                            <span
+                                                className='absolute w-[20px] h-[20px] rounded-full overflow-hidden bg-red-700 -top-[5px] -right-[5px] flex items-center justify-center z-50 cursor-pointer'
+                                                onClick={() => removeFile(index)}
+                                            >
+                                                <IoMdClose className='text-white text-[12px]' />
+                                            </span>
+
+                                            <div className="flex items-center space-x-3">
+                                                {/* File Icon/Preview */}
+                                                <div className="flex-shrink-0">
+                                                    {fileData.type.startsWith('image/') ? (
+                                                        <img
+                                                            src={fileData.preview}
+                                                            alt={fileData.name}
+                                                            className="w-12 h-12 object-cover rounded"
+                                                        />
+                                                    ) : (
+                                                        <div className="w-12 h-12 bg-gray-200 rounded flex items-center justify-center">
+                                                            <span className="text-xs font-bold text-gray-600">
+                                                                {fileData.name.split('.').pop()?.toUpperCase()}
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {/* File Info */}
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-medium text-gray-900 truncate">
+                                                        {fileData.name}
+                                                    </p>
+                                                    <p className="text-xs text-gray-500">
+                                                        {(fileData.size / 1024 / 1024).toFixed(2)} MB
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </div>
-
-
-
                 <hr />
                 <br />
                 <Button type="submit" className="btn-blue btn-lg w-full flex gap-2">
-
                     {
                         isLoading === true ? <CircularProgress color="inherit" />
                             :
@@ -703,7 +823,6 @@ const AddProduct = () => {
                             </>
                     }
                 </Button>
-
             </form>
         </section>
     )

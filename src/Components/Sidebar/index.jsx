@@ -293,7 +293,7 @@ const Sidebar = () => {
               </Button>
             </Link>
           </li>}
-
+{/* 
           {hasModule("Users") && <li>
             <Link to="/product-file"
               onClick={() => {
@@ -305,7 +305,7 @@ const Sidebar = () => {
                 <FiUsers className="text-[18px]" /> <span>Upload Product File</span>
               </Button>
             </Link>
-          </li>}
+          </li>} */}
 
 
           {hasModule("Orders") &&<li>
