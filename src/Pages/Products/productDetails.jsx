@@ -241,24 +241,47 @@ const ProductDetails = () => {
                                     product?.files?.length > 0 && (
                                         <>
                                             <h2 className="text-[20px] font-[500] mb-3 mt-6">Product Files</h2>
-                                            <ul className="text-[14px] space-y-2">
-                                                {product.files.map((file, index) => (
-                                                    <li key={index} className="flex items-center gap-2">
-                                                        <span className="font-medium">{file.fileName || `File ${index + 1}`}:</span>
-                                                        <a
-                                                            href={file.fileUrl}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="text-blue-600 underline hover:text-blue-800 transition-all"
-                                                        >
-                                                            View / Download
-                                                        </a>
-                                                    </li>
-                                                ))}
-                                            </ul>
+                                            <div className="overflow-x-auto">
+                                                <table className="min-w-full text-left text-sm border border-gray-300">
+                                                    <thead className="bg-gray-100 text-gray-700 font-semibold">
+                                                        <tr>
+                                                            <th className="px-4 py-2 border border-gray-300">#</th>
+                                                            <th className="px-4 py-2 border border-gray-300">File Name</th>
+                                                            <th className="px-4 py-2 border border-gray-300">Folder</th>
+                                                            <th className="px-4 py-2 border border-gray-300">Uploaded By</th>
+                                                            <th className="px-4 py-2 border border-gray-300">Uploaded At</th>
+                                                            <th className="px-4 py-2 border border-gray-300">Version</th>
+                                                            <th className="px-4 py-2 border border-gray-300">View / Download</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {product.files.map((file, index) => (
+                                                            <tr key={file._id} className="border-t hover:bg-gray-50 transition">
+                                                                <td className="px-4 py-2 border border-gray-300">{index + 1}</td>
+                                                                <td className="px-4 py-2 border border-gray-300">{file.fileName}</td>
+                                                                <td className="px-4 py-2 border border-gray-300">{file.folderName}</td>
+                                                                <td className="px-4 py-2 border border-gray-300">{file.uploadedBy}</td>
+                                                                <td className="px-4 py-2 border border-gray-300">{new Date(file.uploadedAt).toLocaleDateString()}</td>
+                                                                <td className="px-4 py-2 border border-gray-300">{file.fileVersion}</td>
+                                                                <td className="px-4 py-2 border border-gray-300">
+                                                                    <a
+                                                                        href={file.fileUrl}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className="text-blue-600 underline hover:text-blue-800 transition"
+                                                                    >
+                                                                        Download
+                                                                    </a>
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
                                         </>
                                     )
                                 }
+
 
 
 

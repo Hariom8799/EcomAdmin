@@ -43,8 +43,8 @@ const AddProduct = () => {
         productWeight: [],
         bannerTitleName: '',
         bannerimages: [],
-        isDisplayOnHomeBanner:false,
-        files: [], 
+        isDisplayOnHomeBanner: false,
+        files: [],
         folderName: '',
     })
 
@@ -227,6 +227,7 @@ const AddProduct = () => {
     // Replace handleFileSelection function
     const handleFileSelection = (e, folderIndex) => {
         const files = Array.from(e.target.files);
+        const userName = localStorage.getItem('userName') || 'Unknown User';
 
         const readFiles = files.map(file => {
             return new Promise((resolve, reject) => {
@@ -237,7 +238,10 @@ const AddProduct = () => {
                         preview: event.target.result,
                         name: file.name,
                         type: file.type,
-                        size: file.size
+                        size: file.size,
+                        uploadedBy: userName,
+                        uploadedAt: new Date().toISOString(),
+                        fileVersion: 1
                     });
                 };
                 reader.onerror = reject;
@@ -263,7 +267,7 @@ const AddProduct = () => {
             e.target.value = '';
         });
     };
-    
+
     // Replace removeFile function
     const removeFile = (folderIndex, fileIndex) => {
         setFolderData(prev => {
@@ -297,7 +301,7 @@ const AddProduct = () => {
         });
     };
 
-   const removeImg = (image, index) => {
+    const removeImg = (image, index) => {
         var imageArr = [];
         imageArr = previews;
         deleteImages(`/api/category/deteleImage?img=${image}`).then((res) => {
@@ -329,7 +333,7 @@ const AddProduct = () => {
     }
 
 
-    const handleChangeSwitch=(event)=>{
+    const handleChangeSwitch = (event) => {
         setCheckedSwitch(event.target.checked);
         formFields.isDisplayOnHomeBanner = event.target.checked;
     }
@@ -349,38 +353,30 @@ const AddProduct = () => {
             return false;
         }
 
-
-
         if (formFields?.catId === "") {
             context.alertBox("error", "Please select product category");
             return false;
         }
-
-
 
         if (formFields?.price === "") {
             context.alertBox("error", "Please enter product price");
             return false;
         }
 
-
         if (formFields?.oldPrice === "") {
             context.alertBox("error", "Please enter product old Price");
             return false;
         }
-
 
         if (formFields?.countInStock === "") {
             context.alertBox("error", "Please enter  product stock");
             return false;
         }
 
-
         if (formFields?.brand === "") {
             context.alertBox("error", "Please enter product brand");
             return false;
         }
-
 
         if (formFields?.discount === "") {
             context.alertBox("error", "Please enter product discount");
@@ -395,22 +391,6 @@ const AddProduct = () => {
             return false;
         }
         setIsLoading(true);
-        // postData("/api/product/create", formFields).then((res) => {
-
-        //     if (res?.error === false) {
-        //         context.alertBox("success", res?.message);
-        //         setTimeout(() => {
-        //             setIsLoading(false);
-        //             context.setIsOpenFullScreenPanel({
-        //                 open: false,
-        //             })
-        //             history("/products");
-        //         }, 1000);
-        //     } else {
-        //         setIsLoading(false);
-        //         context.alertBox("error", res?.message);
-        //     }
-        // })
 
         const formData = new FormData();
 
@@ -427,13 +407,16 @@ const AddProduct = () => {
             }
         });
 
-        // console.log("knfjkdbkfdbkdbdkjbkdjbdfkjb",filePreviews)
         // Append files if any
+        const userName = localStorage.getItem('userName') || 'Unknown User';
         folderData.forEach((folder, folderIndex) => {
             folder.files.forEach((file) => {
                 formData.append('files', file);
                 formData.append('fileNames', file.name);
                 formData.append('folderNames', folder.folderName || `folder_${folderIndex + 1}`);
+                formData.append('uploadedBy', userName);
+                formData.append('uploadedAt', new Date().toISOString());
+                formData.append('fileVersion', '1');
             });
         });
         setIsLoading(true);
@@ -510,6 +493,7 @@ const AddProduct = () => {
                                         context?.catData?.map((cat, index) => {
                                             return (
                                                 <MenuItem value={cat?._id}
+                                                    key={index}
                                                     onClick={() => selectCatByName(cat?.name)}>{cat?.name}</MenuItem>
                                             )
                                         })
@@ -528,7 +512,7 @@ const AddProduct = () => {
                                 context?.catData?.length !== 0 &&
                                 <Select
                                     labelId="demo-simple-select-label"
-                                    id="productCatDrop"
+                                    id="productSubCatDrop"
                                     size="small"
                                     className='w-full'
                                     value={productSubCat}
@@ -537,17 +521,20 @@ const AddProduct = () => {
                                 >
                                     {
                                         context?.catData?.map((cat, index) => {
-                                            return (
-                                                cat?.children?.length !== 0 && cat?.children?.map((subCat, index_) => {
-                                                    return (
-                                                        <MenuItem value={subCat?._id}
-                                                            onClick={() => selectSubCatByName(subCat?.name)}
-                                                        >
-                                                            {subCat?.name}</MenuItem>
-                                                    )
-                                                })
-
-                                            )
+                                            if (!productCat || cat?._id === productCat) {
+                                                return (
+                                                    cat?.children?.length !== 0 && cat?.children?.map((subCat, index_) => {
+                                                        return (
+                                                            <MenuItem key={index_} value={subCat?._id}
+                                                                onClick={() => selectSubCatByName(subCat?.name)}
+                                                            >
+                                                                {subCat?.name}
+                                                            </MenuItem>
+                                                        )
+                                                    })
+                                                )
+                                            }
+                                            return null;
                                         })
                                     }
 
@@ -577,15 +564,17 @@ const AddProduct = () => {
                                         context?.catData?.map((cat) => {
                                             return (
                                                 cat?.children?.length !== 0 && cat?.children?.map((subCat) => {
-                                                    return (
-                                                        subCat?.children?.length !== 0 && subCat?.children?.map((thirdLavelCat, index) => {
-                                                            return <MenuItem value={thirdLavelCat?._id} key={index}
-                                                                onClick={() => selectSubCatByThirdLavel(thirdLavelCat?.name)}>{thirdLavelCat?.name}</MenuItem>
-                                                        })
-
-                                                    )
+                                                    // Only show third level categories if no subcategory is selected OR if this subcategory is selected
+                                                    if (!productSubCat || subCat?._id === productSubCat) {
+                                                        return (
+                                                            subCat?.children?.length !== 0 && subCat?.children?.map((thirdLavelCat, index) => {
+                                                                return <MenuItem value={thirdLavelCat?._id} key={index} onClick={() => selectSubCatByThirdLavel(thirdLavelCat?.name)}
+                                                                >{thirdLavelCat?.name}</MenuItem>
+                                                            })
+                                                        )
+                                                    }
+                                                    return null;
                                                 })
-
                                             )
                                         })
                                     }
@@ -749,7 +738,7 @@ const AddProduct = () => {
                         <div className='bg-gray-100 p-4 w-full'>
                             <div className="flex items-center gap-8">
                                 <h3 className="font-[700] text-[18px] mb-3">Banner Images</h3>
-                                <Switch {...label} onChange={handleChangeSwitch} checked={checkedSwitch}/>
+                                <Switch {...label} onChange={handleChangeSwitch} checked={checkedSwitch} />
                             </div>
                             <div className="grid grid-cols-2 md:grid-cols-7 gap-4">
 
@@ -869,12 +858,19 @@ const AddProduct = () => {
                                                             <p className="text-xs text-gray-500">
                                                                 {(fileData.size / 1024 / 1024).toFixed(2)} MB
                                                             </p>
+                                                            <p className="text-xs text-blue-600 font-medium">
+                                                                By: {fileData.uploadedBy || 'Unknown User'}
+                                                            </p>
+                                                            <p className="text-xs text-gray-400">
+                                                                {new Date(fileData.uploadedAt).toLocaleDateString()} {new Date(fileData.uploadedAt).toLocaleTimeString()}
+                                                            </p>
                                                         </div>
                                                     </div>
                                                 </div>
                                             ))}
                                         </div>
                                     )}
+
                                 </div>
                             ))}
                         </div>

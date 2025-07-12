@@ -14,6 +14,7 @@ import { useNavigate } from 'react-router-dom';
 import CircularProgress from '@mui/material/CircularProgress';
 
 import Switch from '@mui/material/Switch';
+import axios from 'axios';
 const apiUrl = import.meta.env.VITE_API_URL;
 
 const label = { inputProps: { 'aria-label': 'Switch demo' } };
@@ -48,18 +49,17 @@ const EditProduct = () => {
         isDisplayOnHomeBanner: false,
         files: [],
         folderName: '',
-
     })
 
     const [filePreviews, setFilePreviews] = useState([]);
     // const [selectedFiles, setSelectedFiles] = useState([]);
     const [folderData, setFolderData] = useState([
-            {
-                folderName: '',
-                files: [],
-                previews: []
-            }
-        ]);
+        {
+            folderName: '',
+            files: [],
+            previews: []
+        }
+    ]);
     const [productCat, setProductCat] = React.useState('');
     const [productSubCat, setProductSubCat] = React.useState('');
     const [productFeatured, setProductFeatured] = React.useState('');
@@ -130,23 +130,13 @@ const EditProduct = () => {
                 bannerTitleName: res?.product?.bannerTitleName,
                 bannerimages: res?.product?.bannerimages,
                 isDisplayOnHomeBanner: res?.product?.isDisplayOnHomeBanner,
-                // files : res?.product?.files,
-                // folderName: res?.product?.files?.[0]?.folderName || '',
                 files: res?.product?.files || [],
                 folderName: res?.product?.files?.[0]?.folderName || ''
 
             })
-            
+
             const existingFiles = res?.product?.files || [];
-            // const filePreviews = existingFiles.map(file => ({
-            //     preview: file.fileUrl,
-            //     name: file.fileName,
-            //     type: "", // Mark as existing file
-            //     isExisting: true, // Add flag to identify existing files
-            //     fileUrl: file.fileUrl,
-            //     fileName: file.fileName,
-            //     folderName: file.folderName
-            // }));
+
             const groupedFiles = existingFiles.reduce((acc, file) => {
                 const folderName = file.folderName || 'Default';
                 if (!acc[folderName]) {
@@ -166,7 +156,12 @@ const EditProduct = () => {
                     fileUrl: file.fileUrl,
                     fileName: file.fileName,
                     folderName: file.folderName,
-                    size: 0 // Size not available for existing files
+                    size: 0,
+                    uploadedBy: file.uploadedBy,
+                    updatedAt: file.updatedAt,
+                    uploadedAt: file.uploadedAt,
+                    fileVersion: file.fileVersion,
+                    _id: file._id
                 });
 
                 return acc;
@@ -352,7 +347,7 @@ const EditProduct = () => {
 
     const handleFileSelection = (e, folderIndex) => {
         const files = Array.from(e.target.files);
-
+        const userName = localStorage.getItem('userName') || 'Unknown User';
         const readFiles = files.map(file => {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -363,7 +358,10 @@ const EditProduct = () => {
                         name: file.name,
                         type: file.type,
                         size: file.size,
-                        isExisting: false // Mark as new file
+                        isExisting: false, // Mark as new file
+                        uploadedBy: userName,
+                        uploadedAt: new Date().toISOString(),
+                        fileVersion: 1
                     });
                 };
                 reader.onerror = reject;
@@ -401,37 +399,83 @@ const EditProduct = () => {
     };
 
     // Replace removeFile function
-    const removeFile = (folderIndex, fileIndex) => {
+    // const removeFile = (folderIndex, fileIndex) => {
+    //     setFolderData(prev => {
+    //         const updated = [...prev];
+    //         const fileToRemove = updated[folderIndex].previews[fileIndex];
+
+    //         // If it's an existing file, we might want to call delete API
+    //         if (fileToRemove.isExisting) {
+    //             // Optionally delete from server
+    //             deleteImages(`/api/category/deteleImage?img=${fileToRemove.fileUrl}`).then((res) => {
+    //                 console.log('File deleted from server');
+    //             }).catch(err => {
+    //                 console.error('Error deleting file:', err);
+    //             });
+    //         }
+
+    //         updated[folderIndex].files.splice(fileIndex, 1);
+    //         updated[folderIndex].previews.splice(fileIndex, 1);
+    //         return updated;
+    //     });
+
+    //     // Also update filePreviews for backward compatibility
+    //     setFilePreviews(prev => {
+    //         const allPreviews = [];
+    //         folderData.forEach((folder, fIndex) => {
+    //             folder.previews.forEach((preview, pIndex) => {
+    //                 if (preview && !(fIndex === folderIndex && pIndex === fileIndex)) {
+    //                     allPreviews.push(preview);
+    //                 }
+    //             });
+    //         });
+    //         return allPreviews;
+    //     });
+    // };
+    const removeFile = async (folderIndex, fileIndex) => {
+        let fileToRemove;
         setFolderData(prev => {
             const updated = [...prev];
-            const fileToRemove = updated[folderIndex].previews[fileIndex];
-
-            // If it's an existing file, we might want to call delete API
-            if (fileToRemove.isExisting) {
-                // Optionally delete from server
-                deleteImages(`/api/category/deteleImage?img=${fileToRemove.fileUrl}`).then((res) => {
-                    console.log('File deleted from server');
-                }).catch(err => {
-                    console.error('Error deleting file:', err);
-                });
-            }
-
-            updated[folderIndex].files.splice(fileIndex, 1);
-            updated[folderIndex].previews.splice(fileIndex, 1);
+            fileToRemove = updated[folderIndex].previews[fileIndex];
             return updated;
         });
 
-        // Also update filePreviews for backward compatibility
-        setFilePreviews(prev => {
-            const allPreviews = [];
-            folderData.forEach((folder, fIndex) => {
-                folder.previews.forEach((preview, pIndex) => {
-                    if (!(fIndex === folderIndex && pIndex === fileIndex)) {
-                        allPreviews.push(preview);
-                    }
+        // If it's an existing file, we might want to call delete API
+        if (fileToRemove && fileToRemove.isExisting) {
+            // Optionally delete from server
+            // deleteImages(`/api/category/deteleImage?img=${fileToRemove.fileUrl}`).then((res) => {
+            //     console.log('File deleted from server');
+            // }).catch(err => {
+            //     console.error('Error deleting file:', err);
+            // });
+            try {
+                await axios.delete(`${apiUrl}/api/delete-file`, {
+                    data: { fileUrl: fileToRemove.fileUrl }
                 });
+            } catch (error) {
+                console.error('Error deleting file:', error);
+            }
+        }
+
+        setFolderData(prev => {
+            const updated = [...prev];
+            updated[folderIndex].files.splice(fileIndex, 1);
+            updated[folderIndex].previews.splice(fileIndex, 1);
+
+            // Update filePreviews immediately with the updated folder data
+            const allPreviews = [];
+            updated.forEach(folder => {
+                if (folder.previews) {
+                    folder.previews.forEach(preview => {
+                        if (preview) {
+                            allPreviews.push(preview);
+                        }
+                    });
+                }
             });
-            return allPreviews;
+            setFilePreviews(allPreviews);
+
+            return updated;
         });
     };
 
@@ -504,52 +548,40 @@ const EditProduct = () => {
             return false;
         }
 
-
-
         if (formFields?.catId === "") {
             context.alertBox("error", "Please select product category");
             return false;
         }
-
-
 
         if (formFields?.price === "") {
             context.alertBox("error", "Please enter product price");
             return false;
         }
 
-
         if (formFields?.oldPrice === "") {
             context.alertBox("error", "Please enter product old Price");
             return false;
         }
-
 
         if (formFields?.countInStock === "") {
             context.alertBox("error", "Please enter  product stock");
             return false;
         }
 
-
         if (formFields?.brand === "") {
             context.alertBox("error", "Please enter product brand");
             return false;
         }
-
 
         if (formFields?.discount === "") {
             context.alertBox("error", "Please enter product discount");
             return false;
         }
 
-
-
-
         if (formFields?.rating === "") {
             context.alertBox("error", "Please enter  product rating");
             return false;
         }
-
 
         if (previews?.length === 0) {
             context.alertBox("error", "Please select product images");
@@ -561,33 +593,29 @@ const EditProduct = () => {
 
         folderData.forEach(folder => {
             folder.previews.forEach(preview => {
-                if (preview.isExisting) {
+                if (preview && preview.isExisting) {
                     allExistingFiles.push({
                         fileUrl: preview.fileUrl,
                         fileName: preview.fileName,
-                        folderName: preview.folderName || folder.folderName
+                        folderName: preview.folderName || folder.folderName,
+                        uploadedBy: preview.uploadedBy,
+                        uploadedAt: preview.uploadedAt,
+                        fileVersion: preview.fileVersion || 1
                     });
-                } else {
+                } else if (preview) {
                     allNewFiles.push({
                         file: preview.file,
-                        folderName: folder.folderName || 'Default'
+                        folderName: folder.folderName || 'Default',
+                        fileName: preview.name,
+                        type: preview.type,
+                        size: preview.size,
+                        uploadedBy: preview.uploadedBy,
+                        uploadedAt: preview.uploadedAt,
+                        fileVersion: preview.fileVersion || 1
                     });
                 }
             });
         });
-    
-
-        // const existingFiles = filePreviews
-        //     .filter(file => file.isExisting)
-        //     .map(file => ({
-        //         fileUrl: file.fileUrl,
-        //         fileName: file.fileName,
-        //         folderName: file.folderName || formFields.folderName
-        //     }));
-
-        // const newFiles = filePreviews
-        //     .filter(file => !file.isExisting)
-        //     .map(file => file.file); // These are the actual File objects
 
         // Create FormData for submission
         const formData = new FormData();
@@ -599,14 +627,15 @@ const EditProduct = () => {
                     //skip this field if it's an empty array
 
                 } else {
-                    if(key === 'category'){
-                        formData.append(key, formFields[key]._id)
-                    }else{
+                    if (key === 'category') {
+                        formData.append(key, formFields[key])
+                    } else {
                         formData.append(key, formFields[key]);
                     }
                 }
             }
         });
+        formData.append('uploadedBy', localStorage.getItem("userName"));
 
         // Add existing files info
         formData.append('existingFiles', JSON.stringify(allExistingFiles));
@@ -719,17 +748,20 @@ const EditProduct = () => {
                                 >
                                     {
                                         context?.catData?.map((cat, index) => {
-                                            return (
-                                                cat?.children?.length !== 0 && cat?.children?.map((subCat, index_) => {
-                                                    return (
-                                                        <MenuItem value={subCat?._id} key={index}
-                                                            onClick={() => selectSubCatByName(subCat?.name)}
-                                                        >
-                                                            {subCat?.name}</MenuItem>
-                                                    )
-                                                })
-
-                                            )
+                                            if (!productCat || cat?._id === productCat) {
+                                                return (
+                                                    cat?.children?.length !== 0 && cat?.children?.map((subCat, index_) => {
+                                                        return (
+                                                            <MenuItem key={index_} value={subCat?._id}
+                                                                onClick={() => selectSubCatByName(subCat?.name)}
+                                                            >
+                                                                {subCat?.name}
+                                                            </MenuItem>
+                                                        )
+                                                    })
+                                                )
+                                            }
+                                            return null;
                                         })
                                     }
 
@@ -759,15 +791,17 @@ const EditProduct = () => {
                                         context?.catData?.map((cat) => {
                                             return (
                                                 cat?.children?.length !== 0 && cat?.children?.map((subCat) => {
-                                                    return (
-                                                        subCat?.children?.length !== 0 && subCat?.children?.map((thirdLavelCat, index) => {
-                                                            return <MenuItem value={thirdLavelCat?._id} key={index}
-                                                                onClick={() => selectSubCatByThirdLavel(thirdLavelCat?.name)}>{thirdLavelCat?.name}</MenuItem>
-                                                        })
-
-                                                    )
+                                                    // Only show third level categories if no subcategory is selected OR if this subcategory is selected
+                                                    if (!productSubCat || subCat?._id === productSubCat) {
+                                                        return (
+                                                            subCat?.children?.length !== 0 && subCat?.children?.map((thirdLavelCat, index) => {
+                                                                return <MenuItem value={thirdLavelCat?._id} key={index} onClick={() => selectSubCatByThirdLavel(thirdLavelCat?.name)}
+                                                                >{thirdLavelCat?.name}</MenuItem>
+                                                            })
+                                                        )
+                                                    }
+                                                    return null;
                                                 })
-
                                             )
                                         })
                                     }
@@ -996,110 +1030,116 @@ const EditProduct = () => {
                     </div>
 
                     <div className='col w-full p-5 px-0'>
-                                            <div className='bg-gray-50 p-4 w-full border rounded-md'>
-                                                <div className="flex justify-between items-center mb-4">
-                                                    <h3 className="font-[700] text-[18px]">Additional Files (Optional)</h3>
-                                                    <Button
-                                                        onClick={addFolder}
-                                                        className="btn-sm bg-green-500 text-white px-3 py-1 rounded"
-                                                        type="button"
+                        <div className='bg-gray-50 p-4 w-full border rounded-md'>
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="font-[700] text-[18px]">Additional Files (Optional)</h3>
+                                <Button
+                                    onClick={addFolder}
+                                    className="btn-sm bg-green-500 text-white px-3 py-1 rounded"
+                                    type="button"
+                                >
+                                    Add Folder
+                                </Button>
+                            </div>
+
+                            {folderData.map((folder, folderIndex) => (
+                                <div key={folderIndex} className="border rounded-lg p-4 mb-4 bg-white">
+                                    <div className="flex justify-between items-center mb-3">
+                                        <h4 className="font-[600] text-[16px]">Folder {folderIndex + 1}</h4>
+                                        {folderData.length > 1 && (
+                                            <Button
+                                                onClick={() => removeFolder(folderIndex)}
+                                                className="btn-sm bg-red-500 text-white px-2 py-1 rounded text-xs"
+                                                type="button"
+                                            >
+                                                Remove Folder
+                                            </Button>
+                                        )}
+                                    </div>
+
+                                    {/* Folder Name Input */}
+                                    <div className='mb-4'>
+                                        <h4 className='text-[14px] font-[500] mb-1 text-black'>Folder Name</h4>
+                                        <input
+                                            type="text"
+                                            className='w-full h-[40px] border border-[rgba(0,0,0,0.2)] focus:outline-none focus:border-[rgba(0,0,0,0.4)] rounded-sm p-3 text-sm'
+                                            value={folder.folderName}
+                                            onChange={(e) => updateFolderName(folderIndex, e.target.value)}
+                                            placeholder="Enter folder name (optional)"
+                                        />
+                                    </div>
+
+                                    {/* File Upload Input */}
+                                    <div className='mb-4'>
+                                        <input
+                                            type="file"
+                                            multiple
+                                            onChange={(e) => handleFileSelection(e, folderIndex)}
+                                            className='hidden'
+                                            id={`fileUpload-${folderIndex}`}
+                                            accept="*/*"
+                                        />
+                                        <label
+                                            htmlFor={`fileUpload-${folderIndex}`}
+                                            className='inline-block px-4 py-2 bg-blue-500 text-white rounded cursor-pointer hover:bg-blue-600 transition-colors'
+                                        >
+                                            <FaCloudUploadAlt className='inline mr-2' />
+                                            Choose Files for this Folder
+                                        </label>
+                                    </div>
+
+                                    {/* File Previews */}
+                                    {folder.previews.length > 0 && (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                            {folder.previews.map((fileData, fileIndex) => (
+                                                <div key={fileIndex} className="border rounded-lg p-3 bg-gray-50 relative">
+                                                    <span
+                                                        className='absolute w-[20px] h-[20px] rounded-full overflow-hidden bg-red-700 -top-[5px] -right-[5px] flex items-center justify-center z-50 cursor-pointer'
+                                                        onClick={() => removeFile(folderIndex, fileIndex)}
                                                     >
-                                                        Add Folder
-                                                    </Button>
-                                                </div>
-                    
-                                                {folderData.map((folder, folderIndex) => (
-                                                    <div key={folderIndex} className="border rounded-lg p-4 mb-4 bg-white">
-                                                        <div className="flex justify-between items-center mb-3">
-                                                            <h4 className="font-[600] text-[16px]">Folder {folderIndex + 1}</h4>
-                                                            {folderData.length > 1 && (
-                                                                <Button
-                                                                    onClick={() => removeFolder(folderIndex)}
-                                                                    className="btn-sm bg-red-500 text-white px-2 py-1 rounded text-xs"
-                                                                    type="button"
-                                                                >
-                                                                    Remove Folder
-                                                                </Button>
+                                                        <IoMdClose className='text-white text-[12px]' />
+                                                    </span>
+
+                                                    <div className="flex items-center space-x-3">
+                                                        <div className="flex-shrink-0">
+                                                            {fileData.type.startsWith('image/') ? (
+                                                                <img
+                                                                    src={fileData.preview}
+                                                                    alt={fileData.name}
+                                                                    className="w-12 h-12 object-cover rounded"
+                                                                />
+                                                            ) : (
+                                                                <div className="w-12 h-12 bg-gray-200 rounded flex items-center justify-center">
+                                                                    <span className="text-xs font-bold text-gray-600">
+                                                                        {fileData.name.split('.').pop()?.toUpperCase()}
+                                                                    </span>
+                                                                </div>
                                                             )}
                                                         </div>
-                    
-                                                        {/* Folder Name Input */}
-                                                        <div className='mb-4'>
-                                                            <h4 className='text-[14px] font-[500] mb-1 text-black'>Folder Name</h4>
-                                                            <input
-                                                                type="text"
-                                                                className='w-full h-[40px] border border-[rgba(0,0,0,0.2)] focus:outline-none focus:border-[rgba(0,0,0,0.4)] rounded-sm p-3 text-sm'
-                                                                value={folder.folderName}
-                                                                onChange={(e) => updateFolderName(folderIndex, e.target.value)}
-                                                                placeholder="Enter folder name (optional)"
-                                                            />
+
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="text-sm font-medium text-gray-900 truncate">
+                                                                {fileData.name}
+                                                            </p>
+                                                            <p className="text-xs text-gray-500">
+                                                                {(fileData.size / 1024 / 1024).toFixed(2)} MB
+                                                            </p>
+                                                            <p className="text-xs text-blue-600 font-medium">
+                                                                By: {fileData.uploadedBy || 'Unknown User'}
+                                                            </p>
+                                                            <p className="text-xs text-gray-400">
+                                                                {new Date(fileData.uploadedAt).toLocaleDateString()} {new Date(fileData.uploadedAt).toLocaleTimeString()}
+                                                            </p>
                                                         </div>
-                    
-                                                        {/* File Upload Input */}
-                                                        <div className='mb-4'>
-                                                            <input
-                                                                type="file"
-                                                                multiple
-                                                                onChange={(e) => handleFileSelection(e, folderIndex)}
-                                                                className='hidden'
-                                                                id={`fileUpload-${folderIndex}`}
-                                                                accept="*/*"
-                                                            />
-                                                            <label
-                                                                htmlFor={`fileUpload-${folderIndex}`}
-                                                                className='inline-block px-4 py-2 bg-blue-500 text-white rounded cursor-pointer hover:bg-blue-600 transition-colors'
-                                                            >
-                                                                <FaCloudUploadAlt className='inline mr-2' />
-                                                                Choose Files for this Folder
-                                                            </label>
-                                                        </div>
-                    
-                                                        {/* File Previews */}
-                                                        {folder.previews.length > 0 && (
-                                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                                                {folder.previews.map((fileData, fileIndex) => (
-                                                                    <div key={fileIndex} className="border rounded-lg p-3 bg-gray-50 relative">
-                                                                        <span
-                                                                            className='absolute w-[20px] h-[20px] rounded-full overflow-hidden bg-red-700 -top-[5px] -right-[5px] flex items-center justify-center z-50 cursor-pointer'
-                                                                            onClick={() => removeFile(folderIndex, fileIndex)}
-                                                                        >
-                                                                            <IoMdClose className='text-white text-[12px]' />
-                                                                        </span>
-                    
-                                                                        <div className="flex items-center space-x-3">
-                                                                            <div className="flex-shrink-0">
-                                                                                {fileData.type.startsWith('image/') ? (
-                                                                                    <img
-                                                                                        src={fileData.preview}
-                                                                                        alt={fileData.name}
-                                                                                        className="w-12 h-12 object-cover rounded"
-                                                                                    />
-                                                                                ) : (
-                                                                                    <div className="w-12 h-12 bg-gray-200 rounded flex items-center justify-center">
-                                                                                        <span className="text-xs font-bold text-gray-600">
-                                                                                            {fileData.name.split('.').pop()?.toUpperCase()}
-                                                                                        </span>
-                                                                                    </div>
-                                                                                )}
-                                                                            </div>
-                    
-                                                                            <div className="flex-1 min-w-0">
-                                                                                <p className="text-sm font-medium text-gray-900 truncate">
-                                                                                    {fileData.name}
-                                                                                </p>
-                                                                                <p className="text-xs text-gray-500">
-                                                                                    {(fileData.size / 1024 / 1024).toFixed(2)} MB
-                                                                                </p>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        )}
                                                     </div>
-                                                ))}
-                                            </div>
+                                                </div>
+                                            ))}
                                         </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
 
                 </div>
 

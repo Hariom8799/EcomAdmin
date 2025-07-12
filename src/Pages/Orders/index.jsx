@@ -108,13 +108,13 @@
 // //                     setTotalOrdersData(res)
 // //                   }
 // //                 })
-                
+
 // //               })
 // //           } else {
 // //               context.alertBox("error", "Only admin can delete data");
 // //           }
 // //       }
-  
+
 
 // //   return (
 // //     <div className="card my-2 md:mt-4 shadow-md sm:rounded-lg bg-white">
@@ -627,7 +627,7 @@
 //       context.setProgress(100);
 //     }
 //   };
-  
+
 
 //   return (
 //     <div className="card my-2 md:mt-4 shadow-md sm:rounded-lg bg-white">
@@ -957,6 +957,7 @@ import Badge from "../../Components/Badge";
 import SearchBox from "../../Components/SearchBox";
 import { deleteData, editData, fetchDataFromApi } from "../../utils/api";
 import { MyContext } from "../../App.jsx";
+import { FiDownload } from "react-icons/fi";
 const apiUrl = import.meta.env.VITE_API_URL;
 
 const Orders = () => {
@@ -1213,6 +1214,46 @@ const Orders = () => {
       context.alertBox("error", "Failed to delete file: " + error.message);
     } finally {
       context.setProgress(100);
+    }
+  };
+
+  const downloadAllProductFiles = async (productId) => {
+    try {
+      const response = await fetch(`${apiUrl}/api/product/download-all-files`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ProductId: productId }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        context.alertBox('error', errorData.message || 'Download failed');
+        return;
+      }
+
+      // Get the filename from the response headers
+      const contentDisposition = response.headers.get('Content-Disposition');
+      const filename = contentDisposition
+        ? contentDisposition.split('filename=')[1].replace(/"/g, '')
+        : `product_files_${productId}.zip`;
+
+      // Create blob and download
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      context.alertBox('success', 'Files downloaded successfully');
+    } catch (error) {
+      console.error('Download error:', error);
+      context.alertBox('error', 'Download failed');
     }
   };
 
@@ -1523,6 +1564,7 @@ const Orders = () => {
                                   <th scope="col" className="px-6 py-3">Quantity</th>
                                   <th scope="col" className="px-6 py-3">Price</th>
                                   <th scope="col" className="px-6 py-3">Image</th>
+                                  <th scope="col" className="px-6 py-3">Files</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -1532,12 +1574,22 @@ const Orders = () => {
                                     className="bg-white border-b dark:bg-gray-800 dark:border-gray-700"
                                   >
                                     <td className="px-6 py-4 font-[500]">{prodIndex + 1}</td>
-                                    <td className="px-6 py-4 font-[500]">{product?._id}</td>
-                                    <td className="px-6 py-4 font-[500]">{product?.name}</td>
+                                    <td className="px-6 py-4 font-[500]">{product?.productId}</td>
+                                    <td className="px-6 py-4 font-[500]">{product?.productTitle}</td>
                                     <td className="px-6 py-4 font-[500]">{product?.quantity}</td>
                                     <td className="px-6 py-4 font-[500]">{product?.price}</td>
                                     <td className="px-6 py-4 font-[500]">
-                                      <img src={product?.image[0]} alt="" width={50} />
+                                      <img src={product?.image} alt="" width={50} />
+                                    </td>
+                                    <td className="px-6 py-4 font-[500]">
+                                      <Button
+                                        className={`!w-[35px] !h-[35px] bg-[#f1f1f1] !border !border-[rgba(0,0,0,0.4)] !rounded-full hover:!bg-[#c2c2c2] !min-w-[35px]`}
+                                        onClick={() => downloadAllProductFiles(product?.productId)}
+                                        title="Download all files"
+                                        // disabled={!product?.files || product?.files.length === 0}
+                                      >
+                                        <FiDownload className="text-[rgba(255,255,255,0.7)] text-[18px]" />
+                                      </Button>
                                     </td>
                                   </tr>
                                 ))}
