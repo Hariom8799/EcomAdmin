@@ -212,7 +212,6 @@ const EditProduct = () => {
         setProductCat(event.target.value);
         formFields.catId = event.target.value
         formFields.category = event.target.value
-
     };
 
     const selectCatByName = (name) => {
@@ -628,7 +627,8 @@ const EditProduct = () => {
 
                 } else {
                     if (key === 'category') {
-                        formData.append(key, formFields[key])
+                        console.log("chcccbcbcbcbcbcbcbcbbcbcbcbcbbcbcbcbcbcb0", formFields[key] )
+                        formData.append(key, formFields[key]?._id)
                     } else {
                         formData.append(key, formFields[key]);
                     }

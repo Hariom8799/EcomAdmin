@@ -623,6 +623,74 @@ export const Products = () => {
         setFolderData(newFolderData);
     };
 
+    // const handleFileUpload = async () => {
+    //     // Check if any folder has files
+    //     const hasFiles = folderData.some(folder => folder.files.length > 0);
+
+    //     if (!hasFiles) {
+    //         context.alertBox('error', 'Please select files to upload');
+    //         return;
+    //     }
+
+    //     setUploading(true);
+
+    //     try {
+    //         const formData = new FormData();
+
+    //         // Collect all files and their metadata
+    //         const fileNames = [];
+    //         const folderNames = [];
+    //         const uploadedByArray = [];
+    //         const uploadedAtArray = [];
+    //         const fileVersionArray = [];
+
+    //         folderData.forEach(folder => {
+    //             folder.files.forEach((file, index) => {
+    //                 formData.append('files', file);
+    //                 fileNames.push(file.name);
+    //                 folderNames.push(folder.folderName || 'default');
+    //                 uploadedByArray.push(context?.userData?.name || 'Current User');
+    //                 uploadedAtArray.push(new Date().toISOString());
+    //                 fileVersionArray.push(1);
+    //             });
+    //         });
+
+    //         // Append metadata arrays
+    //         formData.append('fileNames', fileNames);
+    //         formData.append('folderNames', folderNames);
+    //         formData.append('uploadedBy', uploadedByArray);
+    //         formData.append('uploadedAt', uploadedAtArray);
+    //         formData.append('fileVersion', fileVersionArray);
+
+    //         const response = await fetch(`${apiUrl}/api/product/products/${fileUploadDialog.productId}/files`, {
+    //             method: 'POST',
+    //             body: formData,
+    //         });
+
+    //         const result = await response.json();
+    //         if (result.success) {
+    //             getProducts(page, rowsPerPage);
+    //             handleCloseFileDialog();
+    //             context.alertBox('success', 'Files uploaded successfully');
+    //         } else {
+    //             context.alertBox('error', result.message || 'Upload failed');
+    //         }
+    //     } catch (error) {
+    //         console.error('Upload error:', error);
+    //         context.alertBox('error', 'Upload failed');
+    //     } finally {
+    //         setUploading(false);
+    //     }
+    // };
+
+    // const handleCloseFileDialog = () => {
+    //     if (!uploading) {
+    //         setFileUploadDialog({ open: false, productId: null });
+    //         setUploadFiles([]);
+    //         setFolderName('');
+    //     }
+    // };
+
     const handleFileUpload = async () => {
         // Check if any folder has files
         const hasFiles = folderData.some(folder => folder.files.length > 0);
@@ -655,12 +723,12 @@ export const Products = () => {
                 });
             });
 
-            // Append metadata arrays
-            formData.append('fileNames', fileNames);
-            formData.append('folderNames', folderNames);
-            formData.append('uploadedBy', uploadedByArray);
-            formData.append('uploadedAt', uploadedAtArray);
-            formData.append('fileVersion', fileVersionArray);
+            // Append each array element individually instead of the whole array
+            fileNames.forEach(name => formData.append('fileNames', name));
+            folderNames.forEach(name => formData.append('folderNames', name));
+            uploadedByArray.forEach(user => formData.append('uploadedBy', user));
+            uploadedAtArray.forEach(date => formData.append('uploadedAt', date));
+            fileVersionArray.forEach(version => formData.append('fileVersion', version));
 
             const response = await fetch(`${apiUrl}/api/product/products/${fileUploadDialog.productId}/files`, {
                 method: 'POST',
@@ -682,15 +750,6 @@ export const Products = () => {
             setUploading(false);
         }
     };
-
-    // const handleCloseFileDialog = () => {
-    //     if (!uploading) {
-    //         setFileUploadDialog({ open: false, productId: null });
-    //         setUploadFiles([]);
-    //         setFolderName('');
-    //     }
-    // };
-
     const handleCloseFileDialog = () => {
         if (!uploading) {
             setFileUploadDialog({ open: false, productId: null });
