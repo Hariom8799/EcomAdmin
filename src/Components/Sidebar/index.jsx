@@ -279,9 +279,51 @@ const Sidebar = () => {
             </Collapse>
           </li>}
 
+          {hasModule("Users") && <li>
+            <Button
+              className="w-full !capitalize !justify-start flex gap-3 text-[14px] !text-[rgba(0,0,0,0.8)] !font-[500] items-center !py-2 hover:!bg-[#f1f1f1]"
+              onClick={() => isOpenSubMenu(5)}
+            >
+              <RiProductHuntLine className="text-[18px]" />{" "}
+              <span>Users</span>
+              <span className="ml-auto w-[30px] h-[30px] flex items-center justify-center">
+                <FaAngleDown
+                  className={`transition-all ${submenuIndex === 5 ? "rotate-180" : ""
+                    }`}
+                />
+              </span>
+            </Button>
 
+            <Collapse isOpened={submenuIndex === 5 ? true : false}>
+              <ul className="w-full">
+                <li className="w-full">
+                  <Link to="/user-admin" onClick={() => {
+                    context?.windowWidth < 992 && context?.setisSidebarOpen(false)
+                    setSubmenuIndex(null)
+                  }}>
+                    <Button className="!text-[rgba(0,0,0,0.7)] !capitalize !justify-start !w-full !text-[13px] !font-[500] !pl-9 flex gap-3">
+                      <span className="block w-[5px] h-[5px] rounded-full bg-[rgba(0,0,0,0.2)]"></span>{" "}
+                      Admin Users
+                    </Button>
+                  </Link>
+                </li>
+                <li className="w-full">
+                  <Link to="/user-client" onClick={() => {
+                    context?.windowWidth < 992 && context?.setisSidebarOpen(false)
+                    setSubmenuIndex(null)
+                  }}>
+                    <Button className="!text-[rgba(0,0,0,0.7)] !capitalize !justify-start !w-full !text-[13px] !font-[500] !pl-9 flex gap-3">
+                      <span className="block w-[5px] h-[5px] rounded-full bg-[rgba(0,0,0,0.2)]"></span>{" "}
+                      Client Users
+                    </Button>
+                  </Link>
+                </li>
+                
+              </ul>
+            </Collapse>
+          </li>}
 
-          {hasModule("Users") &&<li>
+          {/* {hasModule("Users") &&<li>
             <Link to="/users"
               onClick={() => {
                 context?.windowWidth < 992 && context?.setisSidebarOpen(false)
@@ -292,21 +334,7 @@ const Sidebar = () => {
                 <FiUsers className="text-[18px]" /> <span>Users</span>
               </Button>
             </Link>
-          </li>}
-{/* 
-          {hasModule("Users") && <li>
-            <Link to="/product-file"
-              onClick={() => {
-                context?.windowWidth < 992 && context?.setisSidebarOpen(false)
-                setSubmenuIndex(null)
-              }}
-            >
-              <Button className="w-full !capitalize !justify-start flex gap-3 text-[14px] !text-[rgba(0,0,0,0.8)] !font-[500] items-center !py-2 hover:!bg-[#f1f1f1]">
-                <FiUsers className="text-[18px]" /> <span>Upload Product File</span>
-              </Button>
-            </Link>
           </li>} */}
-
 
           {hasModule("Orders") &&<li>
             <Link to="/orders"

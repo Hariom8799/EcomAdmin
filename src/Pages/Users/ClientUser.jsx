@@ -34,7 +34,7 @@ const columns = [
     {
         id: "role",
         label: "ROLE",
-        minWidth: 130,
+        minWidth: 80,
     },
     {
         id: "verifyemail",
@@ -86,7 +86,7 @@ export const Users = () => {
     const getUsers = (page, limit) => {
         setIsloading(true);
         setPage(page);
-        fetchDataFromApi(`/api/user/getAdminUsers?page=${page + 1}&limit=${limit}`).then((res) => {
+        fetchDataFromApi(`/api/user/getOnlyUsers?page=${page + 1}&limit=${limit}`).then((res) => {
             setUserData(res)
             setUserTotalData(res)
             setIsloading(false)
@@ -226,7 +226,7 @@ export const Users = () => {
                 <div className="flex items-center w-full px-5 pb-4 justify-beetween">
                     <div className="col w-[40%]">
                         <h2 className="text-[18px] font-[600]">
-                            Admin Users List
+                            Client Users List
                         </h2>
                     </div>
 
@@ -313,9 +313,9 @@ export const Users = () => {
                                                     <span className="flex items-center gap-2"> <MdLocalPhone />  {user?.mobile === null ? 'NONE' : user?.mobile}</span>
                                                 </TableCell>
                                                 <TableCell style={{ minWidth: columns.minWidth }}>
-
-                                                    <span className="flex items-center gap-2">{user?.role}</span>
-                                                </TableCell>
+                                                
+                                                                                                    <span className="flex items-center gap-2">{user?.role}</span>
+                                                                                                </TableCell>
 
 
                                                 <TableCell style={{ minWidth: columns.minWidth }}>
@@ -343,14 +343,14 @@ export const Users = () => {
                                                     <span className="flex items-center gap-2"> <SlCalender />  {user?.createdAt?.split("T")[0]}</span>
                                                 </TableCell>
 
-                                                <TableCell style={{ minWidth: columns.minWidth }} className='space-x-2'>
+                                                <TableCell style={{ minWidth: columns.minWidth }} className='space-x-2 '>
                                                     <div className='flex items-center gap-1'>
-
-                                                    <Link to={`/users/edit/${user?._id}`}>
-                                                        <Button variant="outlined" color="primary" size="small">Edit</Button>
-                                                    </Link>
-                                                    <Button onClick={() => deleteUser(user?._id)} variant="outlined" color="error" size="small">Delete</Button>
+                                                        <Link to={`/users/edit/${user?._id}`}>
+                                                            <Button variant="outlined" color="primary" size="small">Edit</Button>
+                                                        </Link>
+                                                        <Button onClick={() => deleteUser(user?._id)} variant="outlined" color="error" size="small">Delete</Button>
                                                     </div>
+                                                    
                                                 </TableCell>
 
                                             </TableRow>

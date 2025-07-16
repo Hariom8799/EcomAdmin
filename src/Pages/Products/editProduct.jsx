@@ -764,6 +764,7 @@ const EditProduct = () => {
                                             return null;
                                         })
                                     }
+                                    <MenuItem value={"None"} onClick={() => selectSubCatByName("None")}>None</MenuItem>
 
                                 </Select>
                             }
@@ -805,6 +806,7 @@ const EditProduct = () => {
                                             )
                                         })
                                     }
+                                        <MenuItem value={"None"} onClick={() => selectSubCatByThirdLavel("None")}>None</MenuItem>
 
                                 </Select>
                             }

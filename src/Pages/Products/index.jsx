@@ -56,6 +56,11 @@ const columns = [
         minWidth: 150,
     },
     {
+        id: "thirdsubCat",
+        label: "THIRD LEVEL CATEGORY",
+        minWidth: 150,
+    },
+    {
         id: "price",
         label: "PRICE",
         minWidth: 130,
@@ -109,6 +114,7 @@ export const Products = () => {
 
     const [photos, setPhotos] = useState([]);
     const [open, setOpen] = useState(false);
+    const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
 
     const context = useContext(MyContext);
 
@@ -201,7 +207,7 @@ export const Products = () => {
 
 
     const getProducts = async (page, limit) => {
-        
+
         setIsloading(true)
         fetchDataFromApi(`/api/product/getAllProducts?page=${page + 1}&limit=${limit}`).then((res) => {
             setProductData(res)
@@ -222,13 +228,15 @@ export const Products = () => {
         })
     }
 
-    const handleChangeProductCat = (event) => {
-        if (event.target.value !== null) {
-            setProductCat(event.target.value);
-            setProductSubCat(''); // Keep this reset
-            setProductThirdLavelCat(''); // Keep this reset
-            setIsloading(true)
-            fetchDataFromApi(`/api/product/getAllProductsByCatId/${event.target.value}`).then((res) => {
+    const applyRemainingFilters = (catValue = productCat, subCatValue = productSubCat, thirdLevelValue = productThirdLavelCat) => {
+        // Check which filters are still active using the passed values
+        const hasActiveCategory = catValue && catValue !== null && catValue !== '';
+        const hasActiveSubCategory = subCatValue && subCatValue !== null && subCatValue !== '';
+        const hasActiveThirdLevel = thirdLevelValue && thirdLevelValue !== null && thirdLevelValue !== '';
+
+        // Apply the highest priority active filter
+        if (hasActiveThirdLevel) {
+            fetchDataFromApi(`/api/product/getAllProductsByThirdLavelCat/${thirdLevelValue}`).then((res) => {
                 if (res?.error === false) {
                     setProductData({
                         error: false,
@@ -239,27 +247,187 @@ export const Products = () => {
                         totalPages: Math.ceil(res?.products?.length / rowsPerPage),
                         totalCount: res?.products?.length
                     });
-
                     setTimeout(() => {
-                        setIsloading(false)
+                        setIsloading(false);
                     }, 300);
                 }
-            })
+            });
+        } else if (hasActiveSubCategory) {
+            fetchDataFromApi(`/api/product/getAllProductsBySubCatId/${subCatValue}`).then((res) => {
+                if (res?.error === false) {
+                    setProductData({
+                        error: false,
+                        success: true,
+                        products: res?.products,
+                        total: res?.products?.length,
+                        page: parseInt(page),
+                        totalPages: Math.ceil(res?.products?.length / rowsPerPage),
+                        totalCount: res?.products?.length
+                    });
+                    setTimeout(() => {
+                        setIsloading(false);
+                    }, 300);
+                }
+            });
+        } else if (hasActiveCategory) {
+            fetchDataFromApi(`/api/product/getAllProductsByCatId/${catValue}`).then((res) => {
+                if (res?.error === false) {
+                    setProductData({
+                        error: false,
+                        success: true,
+                        products: res?.products,
+                        total: res?.products?.length,
+                        page: parseInt(page),
+                        totalPages: Math.ceil(res?.products?.length / rowsPerPage),
+                        totalCount: res?.products?.length
+                    });
+                    setTimeout(() => {
+                        setIsloading(false);
+                    }, 300);
+                }
+            });
         } else {
+            // No filters are active, get all products
             getProducts(0, 50);
-            setProductSubCat('');
-            setProductCat(event.target.value);
-            setProductThirdLavelCat('');
+        }
+    };
+
+    // const handleChangeProductCat = (event) => {
+    //     if (event.target.value !== null) {
+    //         setProductCat(event.target.value);
+    //         setProductSubCat(''); // Keep this reset
+    //         setProductThirdLavelCat(''); // Keep this reset
+    //         setIsloading(true)
+    //         fetchDataFromApi(`/api/product/getAllProductsByCatId/${event.target.value}`).then((res) => {
+    //             if (res?.error === false) {
+    //                 setProductData({
+    //                     error: false,
+    //                     success: true,
+    //                     products: res?.products,
+    //                     total: res?.products?.length,
+    //                     page: parseInt(page),
+    //                     totalPages: Math.ceil(res?.products?.length / rowsPerPage),
+    //                     totalCount: res?.products?.length
+    //                 });
+
+    //                 setTimeout(() => {
+    //                     setIsloading(false)
+    //                 }, 300);
+    //             }
+    //         })
+    //     } else {
+    //         getProducts(0, 50);
+    //         setProductSubCat('');
+    //         setProductCat(event.target.value);
+    //         setProductThirdLavelCat('');
+    //     }
+    // };
+
+    // const handleChangeProductSubCat = (event) => {
+    //     if (event.target.value !== null) {
+    //         setProductSubCat(event.target.value);
+    //         // setProductCat('');
+    //         setProductThirdLavelCat('');
+    //         setIsloading(true)
+    //         fetchDataFromApi(`/api/product/getAllProductsBySubCatId/${event.target.value}`).then((res) => {
+    //             if (res?.error === false) {
+    //                 setProductData({
+    //                     error: false,
+    //                     success: true,
+    //                     products: res?.products,
+    //                     total: res?.products?.length,
+    //                     page: parseInt(page),
+    //                     totalPages: Math.ceil(res?.products?.length / rowsPerPage),
+    //                     totalCount: res?.products?.length
+    //                 });
+    //                 setTimeout(() => {
+    //                     setIsloading(false)
+    //                 }, 500);
+    //             }
+    //         })
+    //     } else {
+    //         setProductSubCat(event.target.value);
+    //         getProducts(0, 50);
+    //         // setProductCat('');
+    //         setProductThirdLavelCat('');
+    //     }
+    // };
+
+    // const handleChangeProductThirdLavelCat = (event) => {
+    //     if (event.target.value !== null) {
+    //         setProductThirdLavelCat(event.target.value);
+    //         // setProductCat('');
+    //         // setProductSubCat('');
+    //         setIsloading(true)
+    //         fetchDataFromApi(`/api/product/getAllProductsByThirdLavelCat/${event.target.value}`).then((res) => {
+    //             console.log(res)
+    //             if (res?.error === false) {
+    //                 setProductData({
+    //                     error: false,
+    //                     success: true,
+    //                     products: res?.products,
+    //                     total: res?.products?.length,
+    //                     page: parseInt(page),
+    //                     totalPages: Math.ceil(res?.products?.length / rowsPerPage),
+    //                     totalCount: res?.products?.length
+    //                 });
+    //                 setTimeout(() => {
+    //                     setIsloading(false)
+    //                 }, 300);
+    //             }
+    //         })
+    //     } else {
+    //         setProductThirdLavelCat(event.target.value);
+    //         getProducts(0, 50);
+    //         // setProductCat('');
+    //         // setProductSubCat('');
+    //     }
+    // };
+
+    const handleChangeProductCat = (event) => {
+        const newCatValue = event.target.value;
+        setProductCat(newCatValue);
+
+        // Reset dependent filters when category changes
+        setProductSubCat('');
+        setProductThirdLavelCat('');
+        setIsloading(true);
+
+        if (newCatValue !== null && newCatValue !== '') {
+            // Filter by category
+            fetchDataFromApi(`/api/product/getAllProductsByCatId/${newCatValue}`).then((res) => {
+                if (res?.error === false) {
+                    setProductData({
+                        error: false,
+                        success: true,
+                        products: res?.products,
+                        total: res?.products?.length,
+                        page: parseInt(page),
+                        totalPages: Math.ceil(res?.products?.length / rowsPerPage),
+                        totalCount: res?.products?.length
+                    });
+                    setTimeout(() => {
+                        setIsloading(false);
+                    }, 300);
+                }
+            });
+        } else {
+            // Category is set to None, pass the new values to check remaining filters
+            applyRemainingFilters(newCatValue, '', ''); // Pass updated values
         }
     };
 
     const handleChangeProductSubCat = (event) => {
-        if (event.target.value !== null) {
-            setProductSubCat(event.target.value);
-            // setProductCat('');
-            setProductThirdLavelCat('');
-            setIsloading(true)
-            fetchDataFromApi(`/api/product/getAllProductsBySubCatId/${event.target.value}`).then((res) => {
+        const newSubCatValue = event.target.value;
+        setProductSubCat(newSubCatValue);
+
+        // Reset dependent filter when subcategory changes
+        setProductThirdLavelCat('');
+        setIsloading(true);
+
+        if (newSubCatValue !== null && newSubCatValue !== '') {
+            // Filter by subcategory
+            fetchDataFromApi(`/api/product/getAllProductsBySubCatId/${newSubCatValue}`).then((res) => {
                 if (res?.error === false) {
                     setProductData({
                         error: false,
@@ -271,26 +439,24 @@ export const Products = () => {
                         totalCount: res?.products?.length
                     });
                     setTimeout(() => {
-                        setIsloading(false)
+                        setIsloading(false);
                     }, 500);
                 }
-            })
+            });
         } else {
-            setProductSubCat(event.target.value);
-            getProducts(0, 50);
-            // setProductCat('');
-            setProductThirdLavelCat('');
+            // SubCategory is set to None, pass the updated values to check remaining filters
+            applyRemainingFilters(productCat, newSubCatValue, ''); // Pass updated values
         }
     };
 
     const handleChangeProductThirdLavelCat = (event) => {
-        if (event.target.value !== null) {
-            setProductThirdLavelCat(event.target.value);
-            // setProductCat('');
-            // setProductSubCat('');
-            setIsloading(true)
-            fetchDataFromApi(`/api/product/getAllProductsByThirdLavelCat/${event.target.value}`).then((res) => {
-                console.log(res)
+        const newThirdLevelValue = event.target.value;
+        setProductThirdLavelCat(newThirdLevelValue);
+        setIsloading(true);
+
+        if (newThirdLevelValue !== null && newThirdLevelValue !== '') {
+            // Filter by third level category
+            fetchDataFromApi(`/api/product/getAllProductsByThirdLavelCat/${newThirdLevelValue}`).then((res) => {
                 if (res?.error === false) {
                     setProductData({
                         error: false,
@@ -302,15 +468,13 @@ export const Products = () => {
                         totalCount: res?.products?.length
                     });
                     setTimeout(() => {
-                        setIsloading(false)
+                        setIsloading(false);
                     }, 300);
                 }
-            })
+            });
         } else {
-            setProductThirdLavelCat(event.target.value);
-            getProducts(0, 50);
-            // setProductCat('');
-            // setProductSubCat('');
+            // Third level is set to None, pass the updated values to check remaining filters
+            applyRemainingFilters(productCat, productSubCat, newThirdLevelValue); // Pass updated values
         }
     };
 
@@ -372,54 +536,6 @@ export const Products = () => {
         getProducts(page, rowsPerPage);
         setPage(newPage);
     };
-
-    // const handleFileChange = (event) => {
-    //     const selectedFiles = Array.from(event.target.files);
-    //     setUploadFiles(selectedFiles);
-    // };
-
-    // const handleRemoveFile = (index) => {
-    //     setUploadFiles(uploadFiles.filter((_, i) => i !== index));
-    // };
-
-    // const handleFileUpload = async () => {
-    //     if (uploadFiles.length === 0) {
-    //         context.alertBox('error', 'Please select files to upload');
-    //         return;
-    //     }
-
-    //     setUploading(true);
-
-    //     try {
-    //         const formData = new FormData();
-    //         uploadFiles.forEach((file) => {
-    //             formData.append('files', file);
-    //         });
-
-    //         if (folderName) {
-    //             formData.append('folderName', folderName);
-    //         }
-
-    //         const response = await fetch(`${apiUrl}/api/product/products/${fileUploadDialog.productId}/files`, {
-    //             method: 'POST',
-    //             body: formData,
-    //         });
-
-    //         const result = await response.json();
-    //         if (result.success) {
-    //             getProducts(page, rowsPerPage); // Refresh the products list
-    //             handleCloseFileDialog();
-    //             context.alertBox('success', 'Files uploaded successfully');
-    //         } else {
-    //             context.alertBox('error', result.message || 'Upload failed');
-    //         }
-    //     } catch (error) {
-    //         console.error('Upload error:', error);
-    //         context.alertBox('error', 'Upload failed');
-    //     } finally {
-    //         setUploading(false);
-    //     }
-    // };
 
     const addFolder = () => {
         setFolderData([...folderData, { folderName: '', files: [], previews: [] }]);
@@ -676,6 +792,17 @@ export const Products = () => {
         }
     };
 
+    // Replace the current setOpen function calls with:
+    const handleImageClick = (productIndex) => {
+        setOpen(true);
+        // Calculate the starting index in the photos array
+        const startIndex = productIndex; // Since each product contributes one image to photos array
+        setPhotos(prevPhotos => {
+            // You might want to set a current index state or pass it to lightbox
+            return prevPhotos;
+        });
+    };
+
 
     return (
         <>
@@ -691,7 +818,7 @@ export const Products = () => {
                         sortedIds?.length !== 0 && <Button variant="contained" className="btn-sm" size="small" color="error"
                             onClick={deleteMultipleProduct}>Delete</Button>
                     }
-                    
+
                     <Button
                         variant="outlined"
                         className="btn-sm"
@@ -866,7 +993,11 @@ export const Products = () => {
                                             </TableCell>
                                             <TableCell style={{ minWidth: columns.minWidth }}>
                                                 <div className="flex items-center gap-4 w-[300px]" title={product?.name}>
-                                                    <div className="img w-[65px] h-[65px] rounded-md overflow-hidden group cursor-pointer" onClick={() => setOpen(true)}>
+                                                    <div className="img w-[65px] h-[65px] rounded-md overflow-hidden group cursor-pointer" onClick={() => {
+                                                        setCurrentPhotoIndex(index);
+                                                        setOpen(true)
+                                                    }}
+                                                    >
                                                         <LazyLoadImage
                                                             alt={"image"}
                                                             effect="blur"
@@ -891,6 +1022,9 @@ export const Products = () => {
 
                                             <TableCell style={{ minWidth: columns.minWidth }}>
                                                 {product?.subCat}
+                                            </TableCell>
+                                            <TableCell style={{ minWidth: columns.minWidth }}>
+                                                {product?.thirdsubCat}
                                             </TableCell>
 
                                             <TableCell style={{ minWidth: columns.minWidth }}>
@@ -929,7 +1063,7 @@ export const Products = () => {
 
 
                                             </TableCell>
-                                            
+
                                             <TableCell style={{ minWidth: columns.minWidth }}>
                                                 <div className="flex items-center gap-1">
                                                     <Button className="!w-[35px] !h-[35px] bg-[#f1f1f1] !border !border-[rgba(0,0,0,0.4)] !rounded-full hover:!bg-[#f1f1f1] !min-w-[35px]"
@@ -949,7 +1083,7 @@ export const Products = () => {
                                                     </Link>
 
                                                     {/* Show upload button only if no files exist */}
-                                                    { (
+                                                    {(
                                                         <Button
                                                             className="!w-[35px] !h-[35px] bg-[#f1f1f1] !border !border-[rgba(0,0,0,0.4)] !rounded-full hover:!bg-[#f1f1f1] !min-w-[35px]"
                                                             onClick={() => openFileUploadDialog(product?._id)}
@@ -959,7 +1093,7 @@ export const Products = () => {
                                                     )}
 
                                                     {/* Show download button only if files exist */}
-                                                    { (
+                                                    {(
                                                         <Button
                                                             className={`!w-[35px] !h-[35px] bg-[#f1f1f1] !border !border-[rgba(0,0,0,0.4)] !rounded-full hover:!bg-[#f1f1f1] !min-w-[35px] ${!product?.files || product?.files.length === 0 ? 'opacity-50 cursor-not-allowed' : ''
                                                                 }`}
@@ -968,7 +1102,7 @@ export const Products = () => {
                                                             disabled={!product?.files || product?.files.length === 0}
                                                         >
                                                             <FiDownload className="text-[rgba(0,0,0,0.7)] text-[18px]" />
-                                                      </Button>
+                                                        </Button>
                                                     )}
 
                                                     <Button className="!w-[35px] !h-[35px] bg-[#f1f1f1] !border !border-[rgba(0,0,0,0.4)] !rounded-full hover:!bg-[#f1f1f1] !min-w-[35px]" onClick={() => deleteProduct(product?._id)}>
@@ -1018,6 +1152,10 @@ export const Products = () => {
                 open={open}
                 close={() => setOpen(false)}
                 slides={photos}
+                index={currentPhotoIndex}
+                on={{
+                    view: ({ index }) => setCurrentPhotoIndex(index)
+                }}
             />
 
             <Dialog open={fileUploadDialog.open} onClose={handleCloseFileDialog} maxWidth="md" fullWidth>
@@ -1164,7 +1302,7 @@ export const Products = () => {
                     <Button
                         onClick={handleFileUpload}
                         variant="contained"
-                        disabled={uploading }
+                        disabled={uploading}
                         startIcon={<FiUpload />}
                     >
                         {uploading ? 'Uploading...' : 'Upload Files'}

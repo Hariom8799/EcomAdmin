@@ -70,7 +70,7 @@ const UserForm = () => {
             } else {
                 await postData('/api/user/admin/users', form);
             }
-            navigate('/users');
+            navigate(`${form.role === "USER" ? "/user-client" : "/user-admin"}`);
         } catch (error) {
             console.error('Failed to submit form:', error);
         } finally {
@@ -82,7 +82,7 @@ const UserForm = () => {
         <div className="p-5 bg-white rounded-md">
             <div className="flex items-center justify-between mb-4">
                 <h1 className="text-[20px] font-[600]">{isEditMode ? 'Edit' : 'Create'} User</h1>
-                <Button variant="outlined" className="btn-border" onClick={() => navigate('/users')}>
+                <Button variant="outlined" className="btn-border" onClick={() => navigate(`${form.role === "USER" ? "/user-client" : "/user-admin"}`)}>
                     Back to List
                 </Button>
             </div>

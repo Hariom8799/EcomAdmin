@@ -14,6 +14,9 @@ import { MdRateReview } from "react-icons/md";
 import { BsPatchCheckFill } from "react-icons/bs";
 import Rating from '@mui/material/Rating';
 import CircularProgress from '@mui/material/CircularProgress';
+import { AiOutlineEye } from "react-icons/ai";
+import { MdFileDownload } from "react-icons/md";
+
 
 const ProductDetails = () => {
 
@@ -51,6 +54,8 @@ const ProductDetails = () => {
         })
     }, []);
 
+    
+
     return (
         <>
             <div className="flex items-center justify-between px-2 py-0 mt-3">
@@ -58,13 +63,9 @@ const ProductDetails = () => {
                     Product Details
                 </h2>
             </div>
-
-
-            <br />
-
             {
                 product?._id !== "" && product?._id !== undefined && product?._id !== null ?
-                    <>
+                    <div className="card my-4 p-5 shadow-md sm:rounded-lg bg-white">
                         <div className="productDetails flex gap-8">
                             <div className='w-[40%]'>
                                 {
@@ -251,7 +252,8 @@ const ProductDetails = () => {
                                                             <th className="px-4 py-2 border border-gray-300">Uploaded By</th>
                                                             <th className="px-4 py-2 border border-gray-300">Uploaded At</th>
                                                             <th className="px-4 py-2 border border-gray-300">Version</th>
-                                                            <th className="px-4 py-2 border border-gray-300">View / Download</th>
+                                                            <th className="px-4 py-2 border border-gray-300">View</th>
+                                                            <th className="px-4 py-2 border border-gray-300">Download</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
@@ -263,15 +265,48 @@ const ProductDetails = () => {
                                                                 <td className="px-4 py-2 border border-gray-300">{file.uploadedBy}</td>
                                                                 <td className="px-4 py-2 border border-gray-300">{new Date(file.uploadedAt).toLocaleDateString()}</td>
                                                                 <td className="px-4 py-2 border border-gray-300">{file.fileVersion}</td>
+                                                                {/* View */}
                                                                 <td className="px-4 py-2 border border-gray-300">
                                                                     <a
                                                                         href={file.fileUrl}
                                                                         target="_blank"
                                                                         rel="noopener noreferrer"
-                                                                        className="text-blue-600 underline hover:text-blue-800 transition"
+                                                                        className="text-blue-600 hover:text-blue-800 flex items-center gap-1"
                                                                     >
-                                                                        Download
+                                                                        <AiOutlineEye /> View
                                                                     </a>
+                                                                </td>
+
+                                                                {/* Download */}
+                                                                <td className="px-4 py-2 border border-gray-300">
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            // Extract the public_id from the Cloudinary URL and add fl_attachment
+                                                                            let downloadUrl = file.fileUrl;
+
+                                                                            // Check if it's a Cloudinary URL and modify it
+                                                                            if (downloadUrl.includes('cloudinary.com')) {
+                                                                                // Add fl_attachment parameter to force download
+                                                                                if (downloadUrl.includes('/upload/')) {
+                                                                                    downloadUrl = downloadUrl.replace('/upload/', '/upload/fl_attachment/');
+                                                                                }
+                                                                                // Also add the filename parameter
+                                                                                downloadUrl += `?dl=${encodeURIComponent(file.fileName)}`;
+                                                                            }
+
+                                                                            const link = document.createElement('a');
+                                                                            link.href = downloadUrl;
+                                                                            link.download = file.fileName;
+                                                                            link.target = '_blank';
+                                                                            link.rel = 'noopener noreferrer';
+                                                                            document.body.appendChild(link);
+                                                                            link.click();
+                                                                            document.body.removeChild(link);
+                                                                        }}
+                                                                        className="text-green-600 hover:text-green-800 flex items-center gap-1 bg-transparent border-none cursor-pointer"
+                                                                    >
+                                                                        <MdFileDownload /> Download
+                                                                    </button>
                                                                 </td>
                                                             </tr>
                                                         ))}
@@ -337,7 +372,7 @@ const ProductDetails = () => {
 
                         </div>
 
-                    </>
+                    </div>
 
 
                     :

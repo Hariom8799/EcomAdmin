@@ -537,7 +537,7 @@ const AddProduct = () => {
                                             return null;
                                         })
                                     }
-
+                                        <MenuItem value={"None"} onClick={() => selectSubCatByName("None")}>None</MenuItem>
                                 </Select>
                             }
 
@@ -578,6 +578,8 @@ const AddProduct = () => {
                                             )
                                         })
                                     }
+                                        <MenuItem value={"None"} onClick={() => selectSubCatByThirdLavel("None")}>None</MenuItem>
+                                        
 
                                 </Select>
                             }
