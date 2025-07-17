@@ -173,7 +173,7 @@ const UserForm = () => {
                     </div>
 
                     {/* Modules */}
-                    <div className="col_">
+                    { form.role === "ADMIN" && <div className="col_">
                         <label className="mb-2 block font-[500] text-gray-600 text-[14px]">Modules</label>
                         <Select
                             multiple
@@ -193,7 +193,7 @@ const UserForm = () => {
                                 </MenuItem>
                             ))}
                         </Select>
-                    </div>
+                    </div>}
 
                     {/* Status */}
                     <div className="col_">
@@ -216,7 +216,7 @@ const UserForm = () => {
                         <Button type="submit" variant="contained" color="primary" disabled={loading}>
                             {loading ? 'Saving...' : isEditMode ? 'Update User' : 'Create User'}
                         </Button>
-                        <Button type="button" variant="outlined" onClick={() => navigate('/users')}>
+                        <Button type="button" variant="outlined" onClick={() => navigate(`${form.role === "USER" ? "/user-client" : "/user-admin"}`)}>
                             Cancel
                         </Button>
                     </div>

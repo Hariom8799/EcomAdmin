@@ -178,6 +178,9 @@ const Dashboard = () => {
     });
   }
 
+  const modules = JSON.parse(localStorage.getItem("modules") || "[]");
+  const hasModule = (modName) => modules.includes(modName);
+
 
 
   return (
@@ -209,9 +212,9 @@ const Dashboard = () => {
         productData?.products?.length !== 0 && users?.length !== 0 && allReviews?.length !== 0 && <DashboardBoxes orders={ordersCount} products={productData?.products?.length} users={users?.length} reviews={allReviews?.length} category={context?.catData?.length} />
       }
 
-      <Products/>
+      {hasModule("Products")  && <Products/>}
 
-      <div className="card my-4 shadow-md sm:rounded-lg bg-white">
+      {hasModule("Orders") && <div className="card my-4 shadow-md sm:rounded-lg bg-white">
         <div className="grid grid-cols-1 lg:grid-cols-2 px-5 py-5 flex-col sm:flex-row">
           <h2 className="text-[18px] font-[600] text-left mb-2 lg:mb-0">Recent Orders</h2>
           <div className="ml-auto w-full">
@@ -451,12 +454,12 @@ const Dashboard = () => {
           </div>
         }
 
-      </div>
+      </div>}
 
 
       <div className="card my-4 shadow-md sm:rounded-lg bg-white">
         <div className="flex items-center justify-between px-5 py-5 pb-0">
-          <h2 class="text-[18px] font-[600]">Total Users & Total Sales</h2>
+          <h2 className="text-[18px] font-[600]">Total Users & Total Sales</h2>
         </div>
 
         <div className="flex items-center gap-5 px-5 py-5 pt-1">

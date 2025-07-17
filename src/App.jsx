@@ -115,15 +115,6 @@ function App() {
       ),
     },
     {
-      path: "/sign-up",
-      exact: true,
-      element: (
-        <>
-          <SignUp />
-        </>
-      ),
-    },
-    {
       path: "/forgot-password",
       exact: true,
       element: (

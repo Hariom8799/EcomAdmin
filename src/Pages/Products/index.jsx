@@ -122,32 +122,13 @@ export const Products = () => {
         getProducts(page, rowsPerPage);
     }, [context?.isOpenFullScreenPanel, page, rowsPerPage])
 
-
-
     useEffect(() => {
-        // Filter orders based on search query
-        if (searchQuery !== "") {
-            const filteredOrders = productTotalData?.totalProducts?.filter((product) =>
-                product._id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                product?.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                product?.catName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                product?.subCat?.includes(searchQuery)
-            );
-            setProductData({
-                error: false,
-                success: true,
-                products: filteredOrders,
-                total: filteredOrders?.length,
-                page: parseInt(page),
-                totalPages: Math.ceil(filteredOrders?.length / rowsPerPage),
-                totalCount: productData?.totalCount
-            });
-
+        if (searchQuery !== "" || productCat || productSubCat || productThirdLavelCat) {
+            getProductsWithFilters(page, rowsPerPage, productCat, productSubCat, productThirdLavelCat, searchQuery);
         } else {
-            getProducts(page, rowsPerPage);
+            getProducts(page, rowsPerPage, false);
         }
-
-    }, [searchQuery])
+    }, [searchQuery]);
 
 
     // Handler to toggle all checkboxes
@@ -205,184 +186,93 @@ export const Products = () => {
         setSortedIds(selectedIds);
     };
 
+    const getProducts = async (page = 0, limit = 50, useFilters = false) => {
+        setIsloading(true);
 
-    const getProducts = async (page, limit) => {
+        let url = `/api/product/getAllProducts?page=${page + 1}&limit=${limit}`;
 
-        setIsloading(true)
-        fetchDataFromApi(`/api/product/getAllProducts?page=${page + 1}&limit=${limit}`).then((res) => {
-            setProductData(res)
+        // If we need to use filters, use the new filtered endpoint
+        if (useFilters || productCat || productSubCat || productThirdLavelCat || searchQuery) {
+            url = `/api/product/filtered?page=${page + 1}&limit=${limit}`;
 
-            setProductTotalData(res)
-            setIsloading(false)
+            // Add filter parameters
+            if (productCat && productCat !== 'null' && productCat !== '') {
+                url += `&catId=${productCat}`;
+            }
+            if (productSubCat && productSubCat !== 'null' && productSubCat !== '') {
+                url += `&subCatId=${productSubCat}`;
+            }
+            if (productThirdLavelCat && productThirdLavelCat !== 'null' && productThirdLavelCat !== '') {
+                url += `&thirdsubCatId=${productThirdLavelCat}`;
+            }
+            if (searchQuery && searchQuery !== '') {
+                url += `&search=${encodeURIComponent(searchQuery)}`;
+            }
+        }
 
+        try {
+            const res = await fetchDataFromApi(url);
+            setProductData(res);
+            setProductTotalData(res);
+            setIsloading(false);
+
+            // Set photos array
             let arr = [];
-
             for (let i = 0; i < res?.products?.length; i++) {
                 arr.push({
                     src: res?.products[i]?.images[0]
-                })
+                });
             }
-
             setPhotos(arr);
-
-        })
-    }
-
-    const applyRemainingFilters = (catValue = productCat, subCatValue = productSubCat, thirdLevelValue = productThirdLavelCat) => {
-        // Check which filters are still active using the passed values
-        const hasActiveCategory = catValue && catValue !== null && catValue !== '';
-        const hasActiveSubCategory = subCatValue && subCatValue !== null && subCatValue !== '';
-        const hasActiveThirdLevel = thirdLevelValue && thirdLevelValue !== null && thirdLevelValue !== '';
-
-        // Apply the highest priority active filter
-        if (hasActiveThirdLevel) {
-            fetchDataFromApi(`/api/product/getAllProductsByThirdLavelCat/${thirdLevelValue}`).then((res) => {
-                if (res?.error === false) {
-                    setProductData({
-                        error: false,
-                        success: true,
-                        products: res?.products,
-                        total: res?.products?.length,
-                        page: parseInt(page),
-                        totalPages: Math.ceil(res?.products?.length / rowsPerPage),
-                        totalCount: res?.products?.length
-                    });
-                    setTimeout(() => {
-                        setIsloading(false);
-                    }, 300);
-                }
-            });
-        } else if (hasActiveSubCategory) {
-            fetchDataFromApi(`/api/product/getAllProductsBySubCatId/${subCatValue}`).then((res) => {
-                if (res?.error === false) {
-                    setProductData({
-                        error: false,
-                        success: true,
-                        products: res?.products,
-                        total: res?.products?.length,
-                        page: parseInt(page),
-                        totalPages: Math.ceil(res?.products?.length / rowsPerPage),
-                        totalCount: res?.products?.length
-                    });
-                    setTimeout(() => {
-                        setIsloading(false);
-                    }, 300);
-                }
-            });
-        } else if (hasActiveCategory) {
-            fetchDataFromApi(`/api/product/getAllProductsByCatId/${catValue}`).then((res) => {
-                if (res?.error === false) {
-                    setProductData({
-                        error: false,
-                        success: true,
-                        products: res?.products,
-                        total: res?.products?.length,
-                        page: parseInt(page),
-                        totalPages: Math.ceil(res?.products?.length / rowsPerPage),
-                        totalCount: res?.products?.length
-                    });
-                    setTimeout(() => {
-                        setIsloading(false);
-                    }, 300);
-                }
-            });
-        } else {
-            // No filters are active, get all products
-            getProducts(0, 50);
+        } catch (error) {
+            console.error('Error fetching products:', error);
+            setIsloading(false);
         }
     };
 
-    // const handleChangeProductCat = (event) => {
-    //     if (event.target.value !== null) {
-    //         setProductCat(event.target.value);
-    //         setProductSubCat(''); // Keep this reset
-    //         setProductThirdLavelCat(''); // Keep this reset
-    //         setIsloading(true)
-    //         fetchDataFromApi(`/api/product/getAllProductsByCatId/${event.target.value}`).then((res) => {
-    //             if (res?.error === false) {
-    //                 setProductData({
-    //                     error: false,
-    //                     success: true,
-    //                     products: res?.products,
-    //                     total: res?.products?.length,
-    //                     page: parseInt(page),
-    //                     totalPages: Math.ceil(res?.products?.length / rowsPerPage),
-    //                     totalCount: res?.products?.length
-    //                 });
+    const getProductsWithFilters = async (page = 0, limit = 50, catId, subCatId, thirdsubCatId, search) => {
+        setIsloading(true);
 
-    //                 setTimeout(() => {
-    //                     setIsloading(false)
-    //                 }, 300);
-    //             }
-    //         })
-    //     } else {
-    //         getProducts(0, 50);
-    //         setProductSubCat('');
-    //         setProductCat(event.target.value);
-    //         setProductThirdLavelCat('');
-    //     }
-    // };
+        let url = `/api/product/getAllProducts?page=${page + 1}&limit=${limit}`;
 
-    // const handleChangeProductSubCat = (event) => {
-    //     if (event.target.value !== null) {
-    //         setProductSubCat(event.target.value);
-    //         // setProductCat('');
-    //         setProductThirdLavelCat('');
-    //         setIsloading(true)
-    //         fetchDataFromApi(`/api/product/getAllProductsBySubCatId/${event.target.value}`).then((res) => {
-    //             if (res?.error === false) {
-    //                 setProductData({
-    //                     error: false,
-    //                     success: true,
-    //                     products: res?.products,
-    //                     total: res?.products?.length,
-    //                     page: parseInt(page),
-    //                     totalPages: Math.ceil(res?.products?.length / rowsPerPage),
-    //                     totalCount: res?.products?.length
-    //                 });
-    //                 setTimeout(() => {
-    //                     setIsloading(false)
-    //                 }, 500);
-    //             }
-    //         })
-    //     } else {
-    //         setProductSubCat(event.target.value);
-    //         getProducts(0, 50);
-    //         // setProductCat('');
-    //         setProductThirdLavelCat('');
-    //     }
-    // };
+        // If any filters are provided, use the filtered endpoint
+        if (catId || subCatId || thirdsubCatId || search) {
+            url = `/api/product/filtered?page=${page + 1}&limit=${limit}`;
 
-    // const handleChangeProductThirdLavelCat = (event) => {
-    //     if (event.target.value !== null) {
-    //         setProductThirdLavelCat(event.target.value);
-    //         // setProductCat('');
-    //         // setProductSubCat('');
-    //         setIsloading(true)
-    //         fetchDataFromApi(`/api/product/getAllProductsByThirdLavelCat/${event.target.value}`).then((res) => {
-    //             console.log(res)
-    //             if (res?.error === false) {
-    //                 setProductData({
-    //                     error: false,
-    //                     success: true,
-    //                     products: res?.products,
-    //                     total: res?.products?.length,
-    //                     page: parseInt(page),
-    //                     totalPages: Math.ceil(res?.products?.length / rowsPerPage),
-    //                     totalCount: res?.products?.length
-    //                 });
-    //                 setTimeout(() => {
-    //                     setIsloading(false)
-    //                 }, 300);
-    //             }
-    //         })
-    //     } else {
-    //         setProductThirdLavelCat(event.target.value);
-    //         getProducts(0, 50);
-    //         // setProductCat('');
-    //         // setProductSubCat('');
-    //     }
-    // };
+            // Add filter parameters
+            if (catId && catId !== 'null' && catId !== '' && catId !== "") {
+                url += `&catId=${catId}`;
+            }
+            if (subCatId && subCatId !== 'null' && subCatId !== '') {
+                url += `&subCatId=${subCatId}`;
+            }
+            if (thirdsubCatId && thirdsubCatId !== 'null' && thirdsubCatId !== '') {
+                url += `&thirdsubCatId=${thirdsubCatId}`;
+            }
+            if (search && search !== '') {
+                url += `&search=${encodeURIComponent(search)}`;
+            }
+        }
+
+        try {
+            const res = await fetchDataFromApi(url);
+            setProductData(res);
+            setProductTotalData(res);
+            setIsloading(false);
+
+            // Set photos array
+            let arr = [];
+            for (let i = 0; i < res?.products?.length; i++) {
+                arr.push({
+                    src: res?.products[i]?.images[0]
+                });
+            }
+            setPhotos(arr);
+        } catch (error) {
+            console.error('Error fetching products:', error);
+            setIsloading(false);
+        }
+    };
 
     const handleChangeProductCat = (event) => {
         const newCatValue = event.target.value;
@@ -391,30 +281,9 @@ export const Products = () => {
         // Reset dependent filters when category changes
         setProductSubCat('');
         setProductThirdLavelCat('');
-        setIsloading(true);
 
-        if (newCatValue !== null && newCatValue !== '') {
-            // Filter by category
-            fetchDataFromApi(`/api/product/getAllProductsByCatId/${newCatValue}`).then((res) => {
-                if (res?.error === false) {
-                    setProductData({
-                        error: false,
-                        success: true,
-                        products: res?.products,
-                        total: res?.products?.length,
-                        page: parseInt(page),
-                        totalPages: Math.ceil(res?.products?.length / rowsPerPage),
-                        totalCount: res?.products?.length
-                    });
-                    setTimeout(() => {
-                        setIsloading(false);
-                    }, 300);
-                }
-            });
-        } else {
-            // Category is set to None, pass the new values to check remaining filters
-            applyRemainingFilters(newCatValue, '', ''); // Pass updated values
-        }
+        // Pass the new values directly to getProducts (reset sub and third level)
+        getProductsWithFilters(0, rowsPerPage, newCatValue, "", "", searchQuery);
     };
 
     const handleChangeProductSubCat = (event) => {
@@ -423,59 +292,17 @@ export const Products = () => {
 
         // Reset dependent filter when subcategory changes
         setProductThirdLavelCat('');
-        setIsloading(true);
 
-        if (newSubCatValue !== null && newSubCatValue !== '') {
-            // Filter by subcategory
-            fetchDataFromApi(`/api/product/getAllProductsBySubCatId/${newSubCatValue}`).then((res) => {
-                if (res?.error === false) {
-                    setProductData({
-                        error: false,
-                        success: true,
-                        products: res?.products,
-                        total: res?.products?.length,
-                        page: parseInt(page),
-                        totalPages: Math.ceil(res?.products?.length / rowsPerPage),
-                        totalCount: res?.products?.length
-                    });
-                    setTimeout(() => {
-                        setIsloading(false);
-                    }, 500);
-                }
-            });
-        } else {
-            // SubCategory is set to None, pass the updated values to check remaining filters
-            applyRemainingFilters(productCat, newSubCatValue, ''); // Pass updated values
-        }
+        // Pass the new values directly to getProducts (reset third level)
+        getProductsWithFilters(0, rowsPerPage, productCat, newSubCatValue, "", searchQuery);
     };
 
     const handleChangeProductThirdLavelCat = (event) => {
         const newThirdLevelValue = event.target.value;
         setProductThirdLavelCat(newThirdLevelValue);
-        setIsloading(true);
 
-        if (newThirdLevelValue !== null && newThirdLevelValue !== '') {
-            // Filter by third level category
-            fetchDataFromApi(`/api/product/getAllProductsByThirdLavelCat/${newThirdLevelValue}`).then((res) => {
-                if (res?.error === false) {
-                    setProductData({
-                        error: false,
-                        success: true,
-                        products: res?.products,
-                        total: res?.products?.length,
-                        page: parseInt(page),
-                        totalPages: Math.ceil(res?.products?.length / rowsPerPage),
-                        totalCount: res?.products?.length
-                    });
-                    setTimeout(() => {
-                        setIsloading(false);
-                    }, 300);
-                }
-            });
-        } else {
-            // Third level is set to None, pass the updated values to check remaining filters
-            applyRemainingFilters(productCat, productSubCat, newThirdLevelValue); // Pass updated values
-        }
+        // Pass the new values directly to getProducts
+        getProductsWithFilters(0, rowsPerPage, productCat, productSubCat, newThirdLevelValue, searchQuery);
     };
 
     const resetFilters = () => {
@@ -483,7 +310,7 @@ export const Products = () => {
         setProductSubCat('');
         setProductThirdLavelCat('');
         setSearchQuery('');
-        getProducts(0, 50);
+        getProducts(0, 50, false); // Use regular endpoint when no filters
     };
 
     const handleChangeRowsPerPage = (event) => {
@@ -622,68 +449,6 @@ export const Products = () => {
         newFolderData[folderIndex].previews.splice(fileIndex, 1);
         setFolderData(newFolderData);
     };
-
-    // const handleFileUpload = async () => {
-    //     // Check if any folder has files
-    //     const hasFiles = folderData.some(folder => folder.files.length > 0);
-
-    //     if (!hasFiles) {
-    //         context.alertBox('error', 'Please select files to upload');
-    //         return;
-    //     }
-
-    //     setUploading(true);
-
-    //     try {
-    //         const formData = new FormData();
-
-    //         // Collect all files and their metadata
-    //         const fileNames = [];
-    //         const folderNames = [];
-    //         const uploadedByArray = [];
-    //         const uploadedAtArray = [];
-    //         const fileVersionArray = [];
-
-    //         folderData.forEach(folder => {
-    //             folder.files.forEach((file, index) => {
-    //                 formData.append('files', file);
-    //                 fileNames.push(file.name);
-    //                 folderNames.push(folder.folderName || 'default');
-    //                 uploadedByArray.push(context?.userData?.name || 'Current User');
-    //                 uploadedAtArray.push(new Date().toISOString());
-    //                 fileVersionArray.push(1);
-    //             });
-    //         });
-
-    //         // Append metadata arrays
-    //         formData.append('fileNames', fileNames);
-    //         formData.append('folderNames', folderNames);
-    //         formData.append('uploadedBy', uploadedByArray);
-    //         formData.append('uploadedAt', uploadedAtArray);
-    //         formData.append('fileVersion', fileVersionArray);
-
-    //         const response = await fetch(`${apiUrl}/api/product/products/${fileUploadDialog.productId}/files`, {
-    //             method: 'POST',
-    //             body: formData,
-    //         });
-
-    //         const result = await response.json();
-    //         if (result.success) {
-    //             getProducts(page, rowsPerPage);
-    //             handleCloseFileDialog();
-    //             context.alertBox('success', 'Files uploaded successfully');
-    //         } else {
-    //             context.alertBox('error', result.message || 'Upload failed');
-    //         }
-    //     } catch (error) {
-    //         console.error('Upload error:', error);
-    //         context.alertBox('error', 'Upload failed');
-    //     } finally {
-    //         setUploading(false);
-    //     }
-    // };
-
-    // const handleCloseFileDialog = () => {
     //     if (!uploading) {
     //         setFileUploadDialog({ open: false, productId: null });
     //         setUploadFiles([]);

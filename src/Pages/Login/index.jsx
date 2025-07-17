@@ -100,7 +100,7 @@ const Login = () => {
     }
 
 
-    postData("/api/user/login", formFields, { withCredentials: true }).then((res) => {
+    postData("/api/user/admin/login", formFields, { withCredentials: true }).then((res) => {
 
       if (res?.error !== true) {
         setIsLoading(false);
@@ -112,7 +112,6 @@ const Login = () => {
 
         localStorage.setItem("accessToken", res?.data?.accesstoken);
         localStorage.setItem("refreshToken", res?.data?.refreshToken);
-        console.log("module   ", res)
         localStorage.setItem("modules", JSON.stringify(res?.data?.modules));
         localStorage.setItem("userId", res?.data?.id);
         localStorage.setItem("userName", res?.data?.userName);
@@ -137,66 +136,6 @@ const Login = () => {
 
   }
 
-
-
-  const authWithGoogle = () => {
-
-    setLoadingGoogle(true);
-
-    signInWithPopup(auth, googleProvider)
-      .then((result) => {
-        // This gives you a Google Access Token. You can use it to access the Google API.
-        const credential = GoogleAuthProvider.credentialFromResult(result);
-        const token = credential.accessToken;
-        // The signed-in user info.
-        const user = result.user;
-
-        const fields = {
-          name: user.providerData[0].displayName,
-          email: user.providerData[0].email,
-          password: null,
-          avatar: user.providerData[0].photoURL,
-          mobile: user.providerData[0].phoneNumber,
-          role: "USER"
-        };
-
-
-        postData("/api/user/authWithGoogle", fields).then((res) => {
-
-          if (res?.error !== true) {
-            setLoadingGoogle(false);
-            setIsLoading(false);
-            context.alertBox("success", res?.message);
-            localStorage.setItem("userEmail", fields.email)
-            localStorage.setItem("accessToken", res?.data?.accesstoken);
-            localStorage.setItem("refreshToken", res?.data?.refreshToken);
-
-            context.setIsLogin(true);
-
-            history("/")
-          } else {
-            context.alertBox("error", res?.message);
-            setIsLoading(false);
-          }
-
-        })
-
-        console.log(user)
-        // IdP data available using getAdditionalUserInfo(result)
-        // ...
-      }).catch((error) => {
-        // Handle Errors here.
-        const errorCode = error.code;
-        const errorMessage = error.message;
-        // The email of the user's account used.
-        const email = error.customData.email;
-        // The AuthCredential type that was used.
-        const credential = GoogleAuthProvider.credentialFromError(error);
-        // ...
-      });
-
-
-  }
   return (
     <section className="bg-white w-full">
       <header className="w-full static lg:fixed top-0 left-0  px-4 py-3 flex items-center justify-center sm:justify-between z-50">
@@ -214,11 +153,7 @@ const Login = () => {
             </Button>
           </NavLink>
 
-          <NavLink to="/sign-up" exact={true} activeClassName="isActive">
-            <Button className="!rounded-full !text-[rgba(0,0,0,0.8)] !px-5 flex gap-1">
-              <FaRegUser className="text-[15px]" /> Sign Up
-            </Button>
-          </NavLink>
+          
         </div>
       </header>
       <img src="/patern.webp" className="w-full fixed top-0 left-0 opacity-5" />
@@ -234,7 +169,7 @@ const Login = () => {
           Sign in with your credentials.
         </h1>
 
-        <div className="flex items-center justify-center w-full mt-5 gap-4">
+        {/* <div className="flex items-center justify-center w-full mt-5 gap-4">
           <LoadingButton
             size="small"
             onClick={authWithGoogle}
@@ -246,7 +181,7 @@ const Login = () => {
           >
             Signin with Google
           </LoadingButton>
-        </div>
+        </div> */}
 
         <br />
 
@@ -306,17 +241,6 @@ const Login = () => {
             >
               Forgot Password?
             </a>
-          </div>
-
-
-
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-[14px]">Don't have an account?</span>
-            <Link to="/sign-up"
-              className="text-primary font-[700] text-[15px] hover:underline hover:text-gray-700 cursor-pointer"
-            >
-              Sign Up
-            </Link>
           </div>
 
           <Button type="submit" disabled={!valideValue} className="btn-blue btn-lg w-full">
